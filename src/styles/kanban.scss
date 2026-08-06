@@ -1,0 +1,193 @@
+@use 'variables';
+
+@mixin kanban-task {
+  gap: var(--gap);
+  display: flex;
+  flex-direction: column;
+  margin: var(--gap);
+  padding: 8px 12px;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -2px rgba(0, 0, 0, 0.1);
+
+  contain: layout;
+  view-transition-name: var(--vt-name);
+
+  &:first-child {
+    margin-top: 0;
+  }
+
+  p {
+    color: #334155;
+  }
+
+  &:not(.grad-disabled) {
+    cursor: grab;
+
+    .kanban-task:active {
+      cursor: grabbing;
+    }
+  }
+
+  .kanban-actions {
+    display: flex;
+    padding: 0;
+    border: none;
+    justify-content: end;
+    width: 100%;
+    gap: 4px;
+
+    button {
+      border: 1px solid #cbd5e1;
+      padding: 2px 6px;
+      background: none;
+      border-radius: 4px;
+      cursor: pointer;
+
+      &:hover:not(:disabled) {
+        background: lightblue;
+
+        &:has(.fa-xmark) {
+          background: red;
+        }
+      }
+    }
+  }
+}
+
+%custom-scroll {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #888 #f1f1f1;
+
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+    margin-right: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+
+    &:hover {
+      background: #555;
+    }
+  }
+}
+
+.kanban-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+
+  .kanban-header {
+    height: fit-content;
+    padding: var(--gap);
+    display: flex;
+
+    input {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1px solid #ccc;
+      border-radius: 4px 0 0 4px;
+    }
+
+    button {
+      color: white;
+      border: none;
+      cursor: pointer;
+      padding: 8px var(--gap);
+      border-radius: 0 4px 4px 0;
+      background-color: #3498db;
+
+      &:disabled {
+        cursor: default;
+        background-color: lightgrey;
+      }
+    }
+  }
+
+  .kanban-board {
+    display: flex;
+    gap: calc(var(--gap) + 4px);
+    gap: calc(var(--gap) + 4px);
+    padding: var(--gap);
+    overflow-x: auto;
+    background: #878a8c;
+    flex-grow: 1;
+  }
+
+  .kanban-column {
+    flex-direction: column;
+    background: #f1f5f9;
+    border-radius: 8px;
+    min-height: 352px;
+    min-width: 240px;
+    flex: 1 1 240px;
+    display: flex;
+
+    &__title {
+      font-size: 1.4rem;
+      font-weight: bold;
+      margin: var(--gap);
+    }
+  }
+
+  .kanban-list {
+    min-height: 200px;
+    display: flex;
+    height: 100%;
+    flex-direction: column;
+    overflow-y: auto;
+    @extend %custom-scroll;
+  }
+
+  .kanban-task {
+    @include kanban-task;
+  }
+}
+
+.cdk-drag-preview {
+  @include kanban-task;
+  padding: var(--gap);
+  box-sizing: border-box;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+
+  .kanban-task {
+    gap: var(--gap);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .kanban-actions {
+    display: none;
+  }
+}
+
+.cdk-drag-placeholder {
+  opacity: 0.3;
+}
+
+.cdk-drag-animating {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

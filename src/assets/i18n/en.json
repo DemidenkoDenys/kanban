@@ -1,0 +1,18 @@
+{
+  "HEADER": {
+    "CREATE_TASK": "Create Task",
+    "ENTER_TASK_NAME": "Enter task name..."
+  },
+  "TASKS": {
+    "TASK": "task",
+    "MOVE_BACK": "Move to previous column",
+    "MOVE_NEXT": "Move to next column",
+    "REMOVE": "Remove task"
+  },
+  "COLUMNS": {
+    "backlog": "Backlog",
+    "todo": "To Do",
+    "ongoing": "Ongoing",
+    "done": "Done"
+  }
+}

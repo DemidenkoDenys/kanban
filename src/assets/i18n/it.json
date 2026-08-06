@@ -1,0 +1,10 @@
+{
+  "CREATE_TASK": "Crea attività",
+  "ENTER_TASK_NAME": "Inserisci il nome dell'attività...",
+  "COLUMNS": {
+    "backlog": "Backlog",
+    "todo": "Da fare",
+    "ongoing": "In corso",
+    "done": "Completato"
+  }
+}

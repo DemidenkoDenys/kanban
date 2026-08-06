@@ -1,0 +1,24 @@
+@let item = inputItem();
+@let id = 'kanban-task__' + item.id;
+@let disabled = item.column === 'done';
+
+@if (item) {
+  <article
+    [id]="id"
+    class="kanban-task"
+    tabindex="0"
+    (focus)="focusChange.emit(true)"
+    (focusout)="focusChange.emit(false)"
+    [class.grad-disabled]="disabled"
+    [style.view-transition-name]="id"
+  >
+    <!-- <h4>{{ item.id }}</h4>
+ -->
+    <p id="{{ id }}__description">{{ item.description }}</p>
+
+    <!-- [disabled]="disabled" -->
+    <fieldset class="kanban-actions" id="{{ id }}__actions">
+      <ng-content select="[task-actions]"></ng-content>
+    </fieldset>
+  </article>
+}

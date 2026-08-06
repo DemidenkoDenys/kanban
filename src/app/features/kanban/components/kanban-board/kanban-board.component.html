@@ -1,0 +1,86 @@
+<section class="kanban-container" aria-label="Kanban Board">
+  <header class="kanban-header">
+    <label for="kanban-new-task-input" class="visually-hidden">
+      {{ 'ENTER_TASK_NAME' | translate }}
+    </label>
+
+    <input
+      id="kanban-new-task-input"
+      type="text"
+      maxlength="150"
+      [placeholder]="'HEADER.ENTER_TASK_NAME' | translate"
+      [(ngModel)]="newTaskName"
+      (keydown.enter)="newTaskName ? addTask() : null" />
+
+    <button id="kanban-add-task-button" type="button" [disabled]="!newTaskName" (click)="addTask()">
+      {{ 'HEADER.CREATE_TASK' | translate }}
+    </button>
+  </header>
+
+  <main class="kanban-board" cdkDropListGroup>
+    @for (
+      column of columns();
+      track column.name;
+      let columnLast = $last;
+      let columnFirst = $first
+    ) {
+      @let tasks = columnsMap()[column.name] ?? [];
+
+      <div class="kanban-column" [attr.aria-label]="'COLUMNS.' + column.name | translate">
+        <h3 class="kanban-column__title">{{ 'COLUMNS.' + column.name | translate }}</h3>
+
+        <ul
+          class="kanban-list"
+          cdkDropList
+          [cdkDropListData]="tasks"
+          [attr.aria-labelledby]="'kanban-col-title-' + column.name"
+          (cdkDropListDropped)="drop($event, column.name)">
+          @for (task of tasks; track task.id) {
+            <li
+              kanban-task
+              cdkDrag
+              [inputItem]="task"
+              [attr.aria-label]="
+                ('COLUMNS.' + column.name | translate) +
+                ' ' +
+                ('TASKS.TASK' | translate) +
+                ' - ' +
+                task.description
+              "
+              [cdkDragDisabled]="column.name === 'done'"
+              (focusChange)="onFocusChange(task, $event)"
+              id="kanban-task--{{ task.id }}">
+              <ng-container task-actions>
+                <button
+                  id="kanban-task_{{ task.id }}_back-button"
+                  aria-hidden="true"
+                  [disabled]="columnFirst"
+                  [attr.aria-label]="'TASK_ACTIONS.MOVE_BACK' | translate"
+                  (click)="moveBack(task)">
+                  <i class="fa-solid fa-chevron-left"></i>
+                </button>
+
+                <button
+                  id="kanban-task_{{ task.id }}_next-button"
+                  aria-hidden="true"
+                  [disabled]="columnLast"
+                  [attr.aria-label]="'TASK_ACTIONS.MOVE_NEXT' | translate"
+                  (click)="moveNext(task)">
+                  <i class="fa-solid fa-chevron-right"></i>
+                </button>
+
+                <button
+                  id="kanban-task_{{ task.id }}_remove-button"
+                  aria-hidden="true"
+                  [attr.aria-label]="'TASK_ACTIONS.REMOVE.' | translate"
+                  (click)="remove(task)">
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+              </ng-container>
+            </li>
+          }
+        </ul>
+      </div>
+    }
+  </main>
+</section>
