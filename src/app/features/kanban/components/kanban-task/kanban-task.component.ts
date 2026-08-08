@@ -7,7 +7,7 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 
-import { Task } from '@kanban/models/kanban.models';
+import { ColumnEnums, Task } from '@kanban/models/kanban.models';
 import { MatMenuModule } from '@angular/material/menu';
 import { KanbanSubtasks } from '../kanban-subtasks/kanban-subtasks';
 
@@ -18,10 +18,10 @@ import { KanbanSubtasks } from '../kanban-subtasks/kanban-subtasks';
   imports: [KanbanSubtasks, MatMenuModule],
 })
 export class KanbanTaskComponent {
-  public readonly column = input.required<string>();
+  public readonly column = input.required<ColumnEnums>();
   public readonly disabled = input<boolean>();
   public readonly taskInput = input.required<Task>();
-  public readonly menuOpened = output<{ event: MouseEvent; task: Task }>();
+  public readonly menuOpened = output<{ event: MouseEvent; task: Task; column: ColumnEnums }>();
   public readonly focusChange = output<boolean>();
   public readonly subtaskChange = output<Array<Task>>();
 
@@ -33,6 +33,6 @@ export class KanbanTaskComponent {
 
   onRightClick(event: MouseEvent) {
     event.preventDefault();
-    this.menuOpened.emit({ task: this.taskInput(), event });
+    this.menuOpened.emit({ task: this.taskInput(), column: this.column(), event });
   }
 }

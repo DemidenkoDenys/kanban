@@ -11,10 +11,10 @@
           >{{ subtask.value.description }}
         </mat-checkbox>
 
-        @if (subtask.value.subtasks) {
+        @if (subtask.value.tasks) {
           <kanban-subtasks
             [task]="subtask.value"
-            [subtasks]="subtask.value.subtasks"
+            [subtasks]="subtask.value.tasks"
             (subtaskChange)="onNestedSubTaskChange($event)"
           ></kanban-subtasks>
         }

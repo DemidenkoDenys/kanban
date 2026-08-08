@@ -20,25 +20,21 @@ import { ClickService } from 'src/app/shared/services/click.service';
 import { orderBy } from 'lodash-es';
 import { getKeyAction } from '@kanban/utils/kanban.utils';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { CommonModule, KeyValue, KeyValuePipe, NgTemplateOutlet } from '@angular/common';
+import { CommonModule, KeyValue, NgTemplateOutlet } from '@angular/common';
 import { KanbanTaskComponent } from '../kanban-task/kanban-task.component';
-import { Columns, KeyboardActions, Task } from '@kanban/models/kanban.models';
+import { ColumnEnums, KeyboardActions, Task } from '@kanban/models/kanban.models';
 import { ContextMenuComponent } from '@shared/components/context-menu/context-menu.component';
-import { KeyvaluePrevNextPipe } from '@shared/pipes/keyvalue-prev-next.pipe';
 
 @Component({
   selector: 'kanban-board',
   templateUrl: './kanban-board.component.html',
   imports: [
     FormsModule,
-    DragDropModule,
-    TranslatePipe,
-    KeyValuePipe,
     CommonModule,
-    NgTemplateOutlet,
+    TranslatePipe,
+    DragDropModule,
     KanbanTaskComponent,
     ContextMenuComponent,
-    KeyvaluePrevNextPipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -53,12 +49,7 @@ export class KanbanComponent {
   public context = signal<{ isOpen: boolean; x: number; y: number } | null>(null);
   public contextMenu = viewChild<ContextMenuComponent>('contextMenu');
   public newTaskName: string | null = null;
-  public focusedTask = signal<{
-    task: Task;
-    prev: Columns;
-    curr: Columns;
-    next: Columns;
-  } | null>(null);
+  public focusedTask = signal<{ task: Task; column: ColumnEnums } | null>(null);
   public readonly isUndoPossible = computed(() => this.service.isUndoPossible());
   public readonly isRedoPossible = computed(() => this.service.isRedoPossible());
 
@@ -90,24 +81,25 @@ export class KanbanComponent {
     }
   }
 
-  public onFocusChange(
-    task: Task,
-    focused: boolean,
-    prev: Columns,
-    curr: Columns,
-    next: Columns,
-  ): void {
-    this.focusedTask.set(focused ? { task, prev, curr, next } : null);
+  public onFocusChange(column: ColumnEnums, task: Task, focused: boolean): void {
+    this.focusedTask.set(focused ? { task, column } : null);
   }
 
-  contextMenuTask = signal<Task | null>(null);
-  public onMenuOpened({ event, task }: { event: MouseEvent; task: Task }): void {
-    this.contextMenuTask.set(task);
+  contextMenuTask = signal<{ task: Task; column: ColumnEnums } | null>(null);
+  public onMenuOpened({
+    task,
+    event,
+    column,
+  }: {
+    task: Task;
+    event: MouseEvent;
+    column: ColumnEnums;
+  }): void {
+    this.contextMenuTask.set(task ? { task, column } : null);
     this.contextMenu()?.open(event);
   }
 
-  onContextItemClick(task: Task): void {
-    console.log('🚀 ~ onContextItemClick:', task);
+  closeMenu(): void {
     this.contextMenu()?.close();
   }
 
@@ -115,66 +107,50 @@ export class KanbanComponent {
     event.preventDefault();
   }
 
-  public drop({
-    container: curr,
-    previousContainer: prev,
-    previousIndex: prevIndex,
-  }: CdkDragDrop<Task[]>): void {
-    const columnTo = curr.element.nativeElement.getAttribute('data-column') as Columns;
-    const columnFrom = prev.element.nativeElement.getAttribute('data-column') as Columns;
-    const movedTask = orderBy(Object.values(prev.data), 'rank', 'asc')[prevIndex];
-
-    if (movedTask) {
-      this.service.moveTo(movedTask, columnTo, columnFrom);
-    }
+  public drop(event: CdkDragDrop<any>): void {
+    const { container: curr, previousContainer: prev, item, currentIndex: index } = event;
+    const task = prev.data[item.data] ?? null;
+    const columnTo = curr.element.nativeElement.getAttribute('data-column') as ColumnEnums;
+    const columnFrom = prev.element.nativeElement.getAttribute('data-column') as ColumnEnums;
+    this.service.moveTask(task, columnFrom, columnTo, index);
   }
 
-  private moveFocusedNext(): void {
-    const task = this.focusedTask();
-    if (task) {
-      this.moveTo(task.task, task.next, task.curr);
-    }
-  }
-
-  private moveFocusedBack(): void {
-    const task = this.focusedTask();
-    if (task) {
-      this.moveTo(task.task, task.prev, task.curr);
-    }
-  }
-
-  public moveTo(task: Task, columnTo: Columns, columnFrom?: Columns): void {
-    if (!columnFrom) {
-      return;
-    }
-
+  public moveNext(column: ColumnEnums | null, task: Task | null): void {
     if ('startViewTransition' in this.document) {
       this.document.startViewTransition(() => {
-        this.service.moveTo(task, columnTo, columnFrom);
-        this.appRef.tick();
+        this.service.moveNext(column, task);
       });
     }
   }
 
-  private deleteFocusedTask(): void {
-    const task = this.focusedTask();
-    if (task) {
-      this.remove(task.task, task.curr);
+  public moveBack(column: ColumnEnums | null, task: Task | null): void {
+    if ('startViewTransition' in this.document) {
+      this.document.startViewTransition(() => {
+        this.service.moveBack(column, task);
+      });
     }
   }
 
-  public remove(task: Task, column: Columns): void {
-    this.service.removeTask(task.id.toString(), column);
+  private moveFocusedNext(): void {
+    const { task = null, column = null } = this.focusedTask() ?? {};
+    this.moveNext(column, task);
   }
 
-  public sortByRank = <T extends { rank: string } | undefined>(
-    a: KeyValue<string, T>,
-    b: KeyValue<string, T>,
-  ): number => {
-    return (a.value && a.value.rank) > (b.value && b.value.rank) ? 1 : -1;
-  };
+  private moveFocusedBack(): void {
+    const { task = null, column = null } = this.focusedTask() ?? {};
+    this.moveBack(column, task);
+  }
 
-  public onSubtaskChange(column: Columns, subtaskChain: Array<Task>): void {
+  private deleteFocusedTask(): void {
+    const { task = null, column = null } = this.focusedTask() ?? {};
+    this.remove(column, task?.id ?? null);
+  }
+
+  public remove(column: ColumnEnums | null, taskId: string | null): void {
+    this.service.removeTask(column, taskId);
+  }
+
+  public onSubtaskChange(column: ColumnEnums, subtaskChain: Array<Task>): void {
     this.service.updateSubtask(column, subtaskChain);
   }
 }

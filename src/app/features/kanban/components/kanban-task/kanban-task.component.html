@@ -18,10 +18,10 @@
   >
     <p id="{{ id }}__description">{{ task.description }}</p>
 
-    @if (task.subtasks) {
+    @if (task.tasks) {
       <kanban-subtasks
         [task]="task"
-        [subtasks]="task.subtasks"
+        [subtasks]="task.tasks"
         (subtaskChange)="subtaskChange.emit($event)"
       ></kanban-subtasks>
     }

@@ -1,4 +1,4 @@
-import { Component, signal, HostListener } from '@angular/core';
+import { Component, signal, HostListener, ChangeDetectionStrategy } from '@angular/core';
 
 @Component({
   selector: 'context-menu',
@@ -41,6 +41,7 @@ import { Component, signal, HostListener } from '@angular/core';
   host: {
     '(window:wheel)': 'close()',
   },
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ContextMenuComponent {
   rect = signal<DOMRect | null>(null);

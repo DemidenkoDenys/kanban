@@ -8,8 +8,8 @@
       id="kanban-new-task-input"
       type="text"
       maxlength="150"
-      [placeholder]="'HEADER.ENTER_TASK_NAME' | translate"
       [(ngModel)]="newTaskName"
+      [placeholder]="'HEADER.ENTER_TASK_NAME' | translate"
       (keydown.enter)="newTaskName ? addTask() : null"
     />
 
@@ -22,16 +22,15 @@
     @let moveBackTitle = 'TASKS.MOVE_BACK' | translate;
     @let moveNextTitle = 'TASKS.MOVE_NEXT' | translate;
     @let removeTitle = 'TASKS.REMOVE' | translate;
-    @let columns = kanban();
+    @let board = kanban();
 
     @for (
-      columnItem of columns | keyvaluePrevNext: sortByRank;
-      track columnItem.key;
-      let columnFirst = $first;
-      let columnLast = $last
+      columnName of board.columnsOrder;
+      track columnName;
+      let columnLast = $last;
+      let columnFirst = $first
     ) {
-      @let column = columnItem.value;
-      @let columnName = columnItem.key;
+      @let column = board.columns[columnName];
 
       @if (column) {
         @let columnTranslate = 'COLUMNS.' + columnName | translate;
@@ -44,11 +43,11 @@
             cdkDropList
             [cdkDropListData]="column.tasks"
             [attr.data-column]="columnName"
-            (cdkDropListDropped)="drop($event)"
             [attr.aria-labelledby]="'kanban-col-title-' + columnName"
+            (cdkDropListDropped)="drop($event)"
           >
-            @for (taskItem of column.tasks | keyvalue: sortByRank; track taskItem.key) {
-              @let task = taskItem.value;
+            @for (taskId of column.tasksOrder; track taskId) {
+              @let task = column.tasks?.[taskId];
 
               @if (task) {
                 <li
@@ -56,16 +55,9 @@
                   cdkDrag
                   [column]="columnName"
                   [taskInput]="task"
+                  [cdkDragData]="task.id"
                   (menuOpened)="onMenuOpened($event)"
-                  (focusChange)="
-                    onFocusChange(
-                      task,
-                      $event,
-                      columnItem.prev?.name,
-                      columnName,
-                      columnItem.next?.name
-                    )
-                  "
+                  (focusChange)="onFocusChange(columnName, task, $event)"
                   [attr.aria-label]="
                     columnTranslate + ' ' + ('TASKS.TASK' | translate) + ' - ' + task.description
                   "
@@ -74,48 +66,35 @@
                   id="kanban-task--{{ task.id }}"
                 >
                   <ng-container task-actions>
-                    <ng-container *ngTemplateOutlet="actions"></ng-container>
-                  </ng-container>
-
-                  <ng-template #actions let-isContext="isContext">
                     <button
-                      id="kanban-task_{{ task.id }}_back-button{{ isContext ? '_context' : '' }}"
+                      id="kanban-task_{{ task.id }}_back-button"
                       aria-hidden="true"
                       [disabled]="columnFirst"
                       [attr.aria-label]="moveBackTitle"
-                      (click)="moveTo(task, columnItem.prev?.name, columnName)"
+                      (click)="moveBack(columnName, task)"
                     >
                       <i class="fa-solid fa-chevron-left"></i>
-                      @if (isContext) {
-                        <span>&nbsp;{{ moveBackTitle }}</span>
-                      }
                     </button>
 
                     <button
-                      id="kanban-task_{{ task.id }}_next-button{{ isContext ? '_context' : '' }}"
+                      id="kanban-task_{{ task.id }}_next-button"
                       aria-hidden="true"
                       [disabled]="columnLast"
                       [attr.aria-label]="moveNextTitle"
-                      (click)="moveTo(task, columnItem.next?.name, columnName)"
+                      (click)="moveNext(columnName, task)"
                     >
                       <i class="fa-solid fa-chevron-right"></i>
-                      @if (isContext) {
-                        <span>&nbsp;{{ moveNextTitle }}</span>
-                      }
                     </button>
 
                     <button
-                      id="kanban-task_{{ task.id }}_remove-button{{ isContext ? '_context' : '' }}"
+                      id="kanban-task_{{ task.id }}_remove-button"
                       aria-hidden="true"
                       [attr.aria-label]="removeTitle"
-                      (click)="remove(task, columnName)"
+                      (click)="remove(columnName, task.id)"
                     >
                       <i class="fa-solid fa-xmark"></i>
-                      @if (isContext) {
-                        <span>&nbsp;{{ removeTitle }}</span>
-                      }
                     </button>
-                  </ng-template>
+                  </ng-container>
                 </li>
               }
             }
@@ -127,14 +106,16 @@
     <context-menu #contextMenu>
       @if (contextMenuTask(); as task) {
         <nav class="context-menu">
-          <button (click)="onContextItemClick(task)">
-            <i class="fa-solid fa-chevron-left"></i>&nbsp;<span>Move back</span>
+          <button (click)="moveBack(task.column, task.task); closeMenu()">
+            <i class="fa-solid fa-chevron-left"></i>&nbsp;<span>{{ moveBackTitle }}</span>
           </button>
-          <button (click)="onContextItemClick(task)">
-            <i class="fa-solid fa-chevron-right"></i>&nbsp;<span>Move next</span>
+
+          <button (click)="moveNext(task.column, task.task); closeMenu()">
+            <i class="fa-solid fa-chevron-right"></i>&nbsp;<span>{{ moveNextTitle }}</span>
           </button>
-          <button (click)="onContextItemClick(task)">
-            <i class="fa-solid fa-chevron-xmark"></i>&nbsp;<span>Remove</span>
+
+          <button (click)="remove(task.column, task.task.id); closeMenu()">
+            <i class="fa-solid fa-chevron-xmark"></i>&nbsp;<span>{{ removeTitle }}</span>
           </button>
         </nav>
       }

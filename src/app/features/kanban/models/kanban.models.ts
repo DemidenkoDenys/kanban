@@ -4,35 +4,49 @@ export const ColumnEnum = {
   ongoing: 'ongoing',
   done: 'done',
 } as const;
-export type Columns = keyof typeof ColumnEnum;
+export type ColumnEnums = keyof typeof ColumnEnum;
 
-export interface Task {
-  id: number;
-  rank: string;
-  description: string;
+export class Task {
+  id = Math.random().toString(36).substring(2, 9);
   progress?: number;
-  subtasks?: Tasks;
+  description = '';
+  tasksOrder?: Array<string>;
+  tasks?: Tasks;
   done?: boolean;
+
+  constructor(description = '') {
+    Object.assign(this, { description });
+  }
 }
 
 export type Tasks = Partial<Record<string, Task | null>>;
 
 export interface Column {
-  id: number;
-  rank: string;
-  name: Columns;
-  tasks: Tasks;
+  id: string;
+  name: ColumnEnums;
+  tasks?: Tasks;
+  tasksOrder?: Array<string>;
 }
 
-export type Kanban = Partial<Record<Columns, Column>>;
+export type Columns = Partial<Record<ColumnEnums, Column>>;
 
-export type KanbanPath =
-  | [Columns, 'tasks', string, ...('subtasks' | string)[]]
-  | [Columns, 'tasks', string]
-  | ['tasks', string, ...('subtasks' | string)[]]
-  | ['tasks', string]
-  | [string, ...('subtasks' | string)[]]
-  | [...('subtasks' | string)[]];
+export class Kanban {
+  columns: Columns = {};
+  columnsOrder: Array<ColumnEnums> = [];
+}
+
+export type KanbanPath = Array<string | ColumnEnums>;
+
+// export type KanbanPathSome =
+//   | ['columns', ColumnEnums, 'tasksOrder']
+//   | ['columns', ColumnEnums, 'tasks', string]
+//   | ['columns', ColumnEnums, 'tasks']
+//   | [ColumnEnums, 'tasksOrder']
+//   | [ColumnEnums, 'tasks', string]
+//   | [ColumnEnums, 'tasks']
+//   | ['tasksOrder']
+//   | ['tasks', string]
+//   | ['tasks'];
 
 export const KeyboardAction = {
   moveNext: 'moveNext',
