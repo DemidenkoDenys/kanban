@@ -4,6 +4,8 @@ export const KeyCode = {
   Enter: 'Enter',
   Delete: 'Delete',
   Escape: 'Escape',
+  ArrowUp: 'ArrowUp',
+  ArrowDown: 'ArrowDown',
   ArrowLeft: 'ArrowLeft',
   ArrowRight: 'ArrowRight',
 } as const;

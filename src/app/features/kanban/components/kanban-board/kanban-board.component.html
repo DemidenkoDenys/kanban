@@ -51,13 +51,14 @@
 
               @if (task) {
                 <li
-                  kanban-task
                   cdkDrag
+                  kanban-task
+                  [focus]="focusTaskId() === task.id"
                   [column]="columnName"
                   [taskInput]="task"
                   [cdkDragData]="task.id"
                   (menuOpened)="onMenuOpened($event)"
-                  (focusChange)="onFocusChange(columnName, task, $event)"
+                  (focusChange)="onFocusChange(task, $event)"
                   [attr.aria-label]="
                     columnTranslate + ' ' + ('TASKS.TASK' | translate) + ' - ' + task.description
                   "
@@ -71,7 +72,7 @@
                       aria-hidden="true"
                       [disabled]="columnFirst"
                       [attr.aria-label]="moveBackTitle"
-                      (click)="moveBack(columnName, task)"
+                      (click)="moveBack(task)"
                     >
                       <i class="fa-solid fa-chevron-left"></i>
                     </button>
@@ -81,7 +82,7 @@
                       aria-hidden="true"
                       [disabled]="columnLast"
                       [attr.aria-label]="moveNextTitle"
-                      (click)="moveNext(columnName, task)"
+                      (click)="moveNext(task)"
                     >
                       <i class="fa-solid fa-chevron-right"></i>
                     </button>
@@ -90,7 +91,7 @@
                       id="kanban-task_{{ task.id }}_remove-button"
                       aria-hidden="true"
                       [attr.aria-label]="removeTitle"
-                      (click)="remove(columnName, task.id)"
+                      (click)="remove(task.id)"
                     >
                       <i class="fa-solid fa-xmark"></i>
                     </button>
@@ -106,15 +107,15 @@
     <context-menu #contextMenu>
       @if (contextMenuTask(); as task) {
         <nav class="context-menu">
-          <button (click)="moveBack(task.column, task.task); closeMenu()">
+          <button (click)="moveBack(task.task); closeMenu()">
             <i class="fa-solid fa-chevron-left"></i>&nbsp;<span>{{ moveBackTitle }}</span>
           </button>
 
-          <button (click)="moveNext(task.column, task.task); closeMenu()">
+          <button (click)="moveNext(task.task); closeMenu()">
             <i class="fa-solid fa-chevron-right"></i>&nbsp;<span>{{ moveNextTitle }}</span>
           </button>
 
-          <button (click)="remove(task.column, task.task.id); closeMenu()">
+          <button (click)="remove(task.task.id); closeMenu()">
             <i class="fa-solid fa-chevron-xmark"></i>&nbsp;<span>{{ removeTitle }}</span>
           </button>
         </nav>

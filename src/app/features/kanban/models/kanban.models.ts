@@ -49,6 +49,10 @@ export type KanbanPath = Array<string | ColumnEnums>;
 //   | ['tasks'];
 
 export const KeyboardAction = {
+  focusUp: 'focusUp',
+  focusDown: 'focusDown',
+  focusLeft: 'focusLeft',
+  focusRight: 'focusRight',
   moveNext: 'moveNext',
   moveBack: 'moveBack',
   delete: 'delete',
@@ -57,3 +61,13 @@ export const KeyboardAction = {
   _none: '_none',
 } as const;
 export type KeyboardActions = keyof typeof KeyboardAction;
+
+export type Direction = 'left' | 'right' | 'up' | 'down';
+
+export class Neighbour implements Record<Direction, string | null> {
+  up: string | null = null;
+  down: string | null = null;
+  left: string | null = null;
+  right: string | null = null;
+}
+export type Neighbours = Record<string, Neighbour>;

@@ -5,6 +5,7 @@ import {
   Component,
   ElementRef,
   ChangeDetectionStrategy,
+  effect,
 } from '@angular/core';
 
 import { ColumnEnums, Task } from '@kanban/models/kanban.models';
@@ -18,6 +19,7 @@ import { KanbanSubtasks } from '../kanban-subtasks/kanban-subtasks';
   imports: [KanbanSubtasks, MatMenuModule],
 })
 export class KanbanTaskComponent {
+  public readonly focus = input<boolean>();
   public readonly column = input.required<ColumnEnums>();
   public readonly disabled = input<boolean>();
   public readonly taskInput = input.required<Task>();
@@ -26,6 +28,19 @@ export class KanbanTaskComponent {
   public readonly subtaskChange = output<Array<Task>>();
 
   private readonly article = viewChild<ElementRef>('article');
+
+  constructor() {
+    effect(() => {
+      const article = this.article();
+      if (article?.nativeElement) {
+        if (this.focus()) {
+          article.nativeElement.focus();
+        } else {
+          article.nativeElement.blur();
+        }
+      }
+    });
+  }
 
   onClick(): void {
     this.article()?.nativeElement?.focus();

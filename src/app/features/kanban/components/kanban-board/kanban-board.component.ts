@@ -1,3 +1,5 @@
+import { CommonModule } from '@angular/common';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   inject,
   effect,
@@ -17,12 +19,9 @@ import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 import { TranslatePipe } from '@ngx-translate/core';
 import { KanbanStoreService } from '@kanban/services/kanban.service';
 import { ClickService } from 'src/app/shared/services/click.service';
-import { orderBy } from 'lodash-es';
 import { getKeyAction } from '@kanban/utils/kanban.utils';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { CommonModule, KeyValue, NgTemplateOutlet } from '@angular/common';
 import { KanbanTaskComponent } from '../kanban-task/kanban-task.component';
-import { ColumnEnums, KeyboardActions, Task } from '@kanban/models/kanban.models';
+import { ColumnEnums, Direction, KeyboardActions, Task } from '@kanban/models/kanban.models';
 import { ContextMenuComponent } from '@shared/components/context-menu/context-menu.component';
 
 @Component({
@@ -47,13 +46,20 @@ export class KanbanComponent {
 
   public kanban = computed(() => this.service.kanban());
   public context = signal<{ isOpen: boolean; x: number; y: number } | null>(null);
-  public contextMenu = viewChild<ContextMenuComponent>('contextMenu');
   public newTaskName: string | null = null;
-  public focusedTask = signal<{ task: Task; column: ColumnEnums } | null>(null);
+  public focusTaskId = signal<string | null>(null);
+  public focusedTask = signal<Task | null>(null);
+  public contextMenu = viewChild<ContextMenuComponent>('contextMenu');
+  public contextMenuTask = signal<{ task: Task; column: ColumnEnums } | null>(null);
+
   public readonly isUndoPossible = computed(() => this.service.isUndoPossible());
   public readonly isRedoPossible = computed(() => this.service.isRedoPossible());
 
   public readonly actions: Record<KeyboardActions, () => void> = {
+    focusUp: () => this.focusNextTask('up'),
+    focusDown: () => this.focusNextTask('down'),
+    focusLeft: () => this.focusNextTask('left'),
+    focusRight: () => this.focusNextTask('right'),
     moveNext: () => this.moveFocusedNext(),
     moveBack: () => this.moveFocusedBack(),
     delete: () => this.deleteFocusedTask(),
@@ -65,13 +71,15 @@ export class KanbanComponent {
   constructor() {
     afterNextRender(() => {
       this.clickService.keyEvent$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((e) => {
-        this.actions[getKeyAction(e)]();
+        const action = getKeyAction(e);
+        if (action) {
+          this.actions[action]();
+          this.closeMenu();
+        }
       });
     });
 
-    effect(() => {
-      console.log(this.service.kanban());
-    });
+    // effect(() => console.log(this.service.kanban()));
   }
 
   public addTask(): void {
@@ -81,29 +89,20 @@ export class KanbanComponent {
     }
   }
 
-  public onFocusChange(column: ColumnEnums, task: Task, focused: boolean): void {
-    this.focusedTask.set(focused ? { task, column } : null);
+  public onFocusChange(task: Task, focused: boolean): void {
+    this.focusedTask.set(focused ? task : null);
   }
 
-  contextMenuTask = signal<{ task: Task; column: ColumnEnums } | null>(null);
-  public onMenuOpened({
-    task,
-    event,
-    column,
-  }: {
-    task: Task;
-    event: MouseEvent;
-    column: ColumnEnums;
-  }): void {
-    this.contextMenuTask.set(task ? { task, column } : null);
-    this.contextMenu()?.open(event);
+  public onMenuOpened(e: { task: Task; event: MouseEvent; column: ColumnEnums }): void {
+    this.contextMenuTask.set(e.task ? { task: e.task, column: e.column } : null);
+    this.contextMenu()?.open(e.event);
   }
 
-  closeMenu(): void {
+  public closeMenu(): void {
     this.contextMenu()?.close();
   }
 
-  onContextMenu(event: MouseEvent) {
+  public onContextMenu(event: MouseEvent) {
     event.preventDefault();
   }
 
@@ -115,39 +114,45 @@ export class KanbanComponent {
     this.service.moveTask(task, columnFrom, columnTo, index);
   }
 
-  public moveNext(column: ColumnEnums | null, task: Task | null): void {
+  public moveNext(task: Task | null): void {
     if ('startViewTransition' in this.document) {
       this.document.startViewTransition(() => {
-        this.service.moveNext(column, task);
+        this.service.moveNext(task);
+        this.appRef.tick();
       });
     }
   }
 
-  public moveBack(column: ColumnEnums | null, task: Task | null): void {
+  public moveBack(task: Task | null): void {
     if ('startViewTransition' in this.document) {
       this.document.startViewTransition(() => {
-        this.service.moveBack(column, task);
+        this.service.moveBack(task);
+        this.appRef.tick();
       });
     }
   }
 
   private moveFocusedNext(): void {
-    const { task = null, column = null } = this.focusedTask() ?? {};
-    this.moveNext(column, task);
+    this.moveNext(this.focusedTask());
   }
 
   private moveFocusedBack(): void {
-    const { task = null, column = null } = this.focusedTask() ?? {};
-    this.moveBack(column, task);
+    this.moveBack(this.focusedTask());
   }
 
   private deleteFocusedTask(): void {
-    const { task = null, column = null } = this.focusedTask() ?? {};
-    this.remove(column, task?.id ?? null);
+    this.remove(this.focusedTask()?.id ?? null);
   }
 
-  public remove(column: ColumnEnums | null, taskId: string | null): void {
-    this.service.removeTask(column, taskId);
+  public remove(taskId: string | null): void {
+    this.service.removeTask(taskId);
+  }
+
+  private focusNextTask(direction: Direction): void {
+    const taskId = this.service.getNeighborTaskId(this.focusedTask(), direction);
+    if (taskId) {
+      this.focusTaskId.set(taskId);
+    }
   }
 
   public onSubtaskChange(column: ColumnEnums, subtaskChain: Array<Task>): void {
