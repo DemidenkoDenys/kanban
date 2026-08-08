@@ -3,14 +3,15 @@
 @mixin kanban-task {
   gap: var(--gap);
   display: flex;
+  position: relative;
   flex-direction: column;
-  margin: var(--gap);
   padding: 8px 12px;
   background: #ffffff;
   border-radius: 8px;
   box-shadow:
-    0 4px 6px -1px rgba(0, 0, 0, 0.1),
-    0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  0 4px 6px -1px rgba(0, 0, 0, 0.1),
+  0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
 
   contain: layout;
   view-transition-name: var(--vt-name);
@@ -21,6 +22,11 @@
 
   p {
     color: #334155;
+  }
+
+  &:focus,
+  &:focus-visible {
+    outline: 2px solid lightblue;
   }
 
   &:not(.grad-disabled) {
@@ -145,6 +151,8 @@
     min-height: 200px;
     display: flex;
     height: 100%;
+    padding: var(--gap);
+    gap: var(--gap);
     flex-direction: column;
     overflow-y: auto;
     @extend %custom-scroll;
@@ -152,7 +160,114 @@
 
   .kanban-task {
     @include kanban-task;
+
+    &:after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 1px;
+      width: calc(var(--progress) - 2px);
+      height: 4px;
+      transition: width 0.5s linear;
+      background: lightgreen;
+      border-bottom-left-radius: 20px 10px;
+    }
+
+    &.complete:after {
+      border-bottom-right-radius: 20px 10px;
+    }
+
+    .mat-mdc-checkbox {
+      --mat-checkbox-state-layer-size: 24px;
+      --mat-checkbox-touch-target-size: 32px;
+
+      .mdc-checkbox {
+        padding: 4px;
+      }
+    }
   }
+
+  .kanban-subtasks {
+    & .kanban-subtasks {
+      margin-left: 26px;
+    }
+  }
+
+  .undo-redo-actions {
+    position: fixed;
+    bottom: 32px;
+    right: 32px;
+
+    button {
+      background-color: rgba(lightblue, 0.5);
+      width: 32px;
+      height: 32px;
+      border: none;
+      cursor: pointer;
+      border-radius: 50%;
+
+      &:disabled {
+        cursor: default;
+        color: rgba(lightgrey, 0.5);
+        background-color: rgba(lightblue, 0.05);
+      }
+    }
+
+    button + button {
+      margin-left: 10px;
+    }
+  }
+
+  .context-menu {
+    display: flex;
+    box-shadow: rgb(38, 57, 77) 0px 20px 30px -10px;
+    flex-direction: column;
+    background-color: white;
+
+    button {
+      border: none;
+      cursor: pointer;
+      padding: 8px 20px;
+      background: none;
+
+      &:hover {
+        background-color: rgba(lightgrey, .5);
+      }
+    }
+  }
+}
+
+.kanban-context-menu {
+  width: 200px;
+  display: flex !important;
+  background: white !important;
+  flex-direction: column !important;
+  box-shadow: rgb(38, 57, 77) 0px 20px 30px -10px;
+
+  button {
+    width: 100%;
+    border: none;
+    padding: 8px;
+    cursor: pointer;
+    background: none;
+
+    &:hover {
+      background-color: rgba(lightgrey, 0.3);
+    }
+  }
+}
+
+.cdk-overlay-popover.cdk-overlay-connected-position-bounding-box {
+  width: fit-content !important;
+  height: fit-content !important;
+  position: absolute;
+}
+
+.mat-menu-anchor {
+  position: fixed;
+  width: 0;
+  height: 0;
+  pointer-events: none;
 }
 
 .cdk-drag-preview {

@@ -1,0 +1,24 @@
+<ol class="kanban-subtasks">
+  @for (subtask of subtasks() | keyvalue; track subtask.key) {
+    @let subtaskId = `kanban-subtask-${task().id}-${subtask.key}`;
+
+    @if (subtask.value) {
+      <li>
+        <mat-checkbox
+          [id]="subtaskId"
+          [checked]="subtask.value.done || false"
+          (change)="onSubTaskChange(subtask.value, $event)"
+          >{{ subtask.value.description }}
+        </mat-checkbox>
+
+        @if (subtask.value.subtasks) {
+          <kanban-subtasks
+            [task]="subtask.value"
+            [subtasks]="subtask.value.subtasks"
+            (subtaskChange)="onNestedSubTaskChange($event)"
+          ></kanban-subtasks>
+        }
+      </li>
+    }
+  }
+</ol>

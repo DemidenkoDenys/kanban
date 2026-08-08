@@ -1,4 +1,4 @@
-<section class="kanban-container" aria-label="Kanban Board">
+<section class="kanban-container" aria-label="Kanban Board" (contextmenu)="onContextMenu($event)">
   <header class="kanban-header">
     <label for="kanban-new-task-input" class="visually-hidden">
       {{ 'ENTER_TASK_NAME' | translate }}
@@ -10,7 +10,8 @@
       maxlength="150"
       [placeholder]="'HEADER.ENTER_TASK_NAME' | translate"
       [(ngModel)]="newTaskName"
-      (keydown.enter)="newTaskName ? addTask() : null" />
+      (keydown.enter)="newTaskName ? addTask() : null"
+    />
 
     <button id="kanban-add-task-button" type="button" [disabled]="!newTaskName" (click)="addTask()">
       {{ 'HEADER.CREATE_TASK' | translate }}
@@ -18,69 +19,135 @@
   </header>
 
   <main class="kanban-board" cdkDropListGroup>
+    @let moveBackTitle = 'TASKS.MOVE_BACK' | translate;
+    @let moveNextTitle = 'TASKS.MOVE_NEXT' | translate;
+    @let removeTitle = 'TASKS.REMOVE' | translate;
+    @let columns = kanban();
+
     @for (
-      column of columns();
-      track column.name;
-      let columnLast = $last;
-      let columnFirst = $first
+      columnItem of columns | keyvaluePrevNext: sortByRank;
+      track columnItem.key;
+      let columnFirst = $first;
+      let columnLast = $last
     ) {
-      @let tasks = columnsMap()[column.name] ?? [];
+      @let column = columnItem.value;
+      @let columnName = columnItem.key;
 
-      <div class="kanban-column" [attr.aria-label]="'COLUMNS.' + column.name | translate">
-        <h3 class="kanban-column__title">{{ 'COLUMNS.' + column.name | translate }}</h3>
+      @if (column) {
+        @let columnTranslate = 'COLUMNS.' + columnName | translate;
 
-        <ul
-          class="kanban-list"
-          cdkDropList
-          [cdkDropListData]="tasks"
-          [attr.aria-labelledby]="'kanban-col-title-' + column.name"
-          (cdkDropListDropped)="drop($event, column.name)">
-          @for (task of tasks; track task.id) {
-            <li
-              kanban-task
-              cdkDrag
-              [inputItem]="task"
-              [attr.aria-label]="
-                ('COLUMNS.' + column.name | translate) +
-                ' ' +
-                ('TASKS.TASK' | translate) +
-                ' - ' +
-                task.description
-              "
-              [cdkDragDisabled]="column.name === 'done'"
-              (focusChange)="onFocusChange(task, $event)"
-              id="kanban-task--{{ task.id }}">
-              <ng-container task-actions>
-                <button
-                  id="kanban-task_{{ task.id }}_back-button"
-                  aria-hidden="true"
-                  [disabled]="columnFirst"
-                  [attr.aria-label]="'TASK_ACTIONS.MOVE_BACK' | translate"
-                  (click)="moveBack(task)">
-                  <i class="fa-solid fa-chevron-left"></i>
-                </button>
+        <div class="kanban-column" [attr.aria-label]="columnTranslate">
+          <h3 class="kanban-column__title">{{ columnTranslate }}</h3>
 
-                <button
-                  id="kanban-task_{{ task.id }}_next-button"
-                  aria-hidden="true"
-                  [disabled]="columnLast"
-                  [attr.aria-label]="'TASK_ACTIONS.MOVE_NEXT' | translate"
-                  (click)="moveNext(task)">
-                  <i class="fa-solid fa-chevron-right"></i>
-                </button>
+          <ul
+            class="kanban-list"
+            cdkDropList
+            [cdkDropListData]="column.tasks"
+            [attr.data-column]="columnName"
+            (cdkDropListDropped)="drop($event)"
+            [attr.aria-labelledby]="'kanban-col-title-' + columnName"
+          >
+            @for (taskItem of column.tasks | keyvalue: sortByRank; track taskItem.key) {
+              @let task = taskItem.value;
 
-                <button
-                  id="kanban-task_{{ task.id }}_remove-button"
-                  aria-hidden="true"
-                  [attr.aria-label]="'TASK_ACTIONS.REMOVE.' | translate"
-                  (click)="remove(task)">
-                  <i class="fa-solid fa-xmark"></i>
-                </button>
-              </ng-container>
-            </li>
-          }
-        </ul>
-      </div>
+              @if (task) {
+                <li
+                  kanban-task
+                  cdkDrag
+                  [column]="columnName"
+                  [taskInput]="task"
+                  (menuOpened)="onMenuOpened($event)"
+                  (focusChange)="
+                    onFocusChange(
+                      task,
+                      $event,
+                      columnItem.prev?.name,
+                      columnName,
+                      columnItem.next?.name
+                    )
+                  "
+                  [attr.aria-label]="
+                    columnTranslate + ' ' + ('TASKS.TASK' | translate) + ' - ' + task.description
+                  "
+                  (subtaskChange)="onSubtaskChange(columnName, $event)"
+                  [cdkDragDisabled]="columnName === 'done'"
+                  id="kanban-task--{{ task.id }}"
+                >
+                  <ng-container task-actions>
+                    <ng-container *ngTemplateOutlet="actions"></ng-container>
+                  </ng-container>
+
+                  <ng-template #actions let-isContext="isContext">
+                    <button
+                      id="kanban-task_{{ task.id }}_back-button{{ isContext ? '_context' : '' }}"
+                      aria-hidden="true"
+                      [disabled]="columnFirst"
+                      [attr.aria-label]="moveBackTitle"
+                      (click)="moveTo(task, columnItem.prev?.name, columnName)"
+                    >
+                      <i class="fa-solid fa-chevron-left"></i>
+                      @if (isContext) {
+                        <span>&nbsp;{{ moveBackTitle }}</span>
+                      }
+                    </button>
+
+                    <button
+                      id="kanban-task_{{ task.id }}_next-button{{ isContext ? '_context' : '' }}"
+                      aria-hidden="true"
+                      [disabled]="columnLast"
+                      [attr.aria-label]="moveNextTitle"
+                      (click)="moveTo(task, columnItem.next?.name, columnName)"
+                    >
+                      <i class="fa-solid fa-chevron-right"></i>
+                      @if (isContext) {
+                        <span>&nbsp;{{ moveNextTitle }}</span>
+                      }
+                    </button>
+
+                    <button
+                      id="kanban-task_{{ task.id }}_remove-button{{ isContext ? '_context' : '' }}"
+                      aria-hidden="true"
+                      [attr.aria-label]="removeTitle"
+                      (click)="remove(task, columnName)"
+                    >
+                      <i class="fa-solid fa-xmark"></i>
+                      @if (isContext) {
+                        <span>&nbsp;{{ removeTitle }}</span>
+                      }
+                    </button>
+                  </ng-template>
+                </li>
+              }
+            }
+          </ul>
+        </div>
+      }
     }
+
+    <context-menu #contextMenu>
+      @if (contextMenuTask(); as task) {
+        <nav class="context-menu">
+          <button (click)="onContextItemClick(task)">
+            <i class="fa-solid fa-chevron-left"></i>&nbsp;<span>Move back</span>
+          </button>
+          <button (click)="onContextItemClick(task)">
+            <i class="fa-solid fa-chevron-right"></i>&nbsp;<span>Move next</span>
+          </button>
+          <button (click)="onContextItemClick(task)">
+            <i class="fa-solid fa-chevron-xmark"></i>&nbsp;<span>Remove</span>
+          </button>
+        </nav>
+      }
+    </context-menu>
+
+    <div class="undo-redo-actions">
+      <button id="kanban-undo-button" [disabled]="!isUndoPossible()" (click)="actions['undo']()">
+        <i class="fa-solid fa-arrow-rotate-left"></i>
+      </button>
+
+      <button id="kanban-redo-button" [disabled]="!isRedoPossible()" (click)="actions['redo']()">
+        <i class="fa-solid fa-arrow-rotate-right"></i>
+      </button>
+    </div>
   </main>
 </section>

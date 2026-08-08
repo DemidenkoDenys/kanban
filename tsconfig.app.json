@@ -7,8 +7,9 @@
     "types": [],
     "baseUrl": "./",
     "paths": {
+      "@shared/*": ["src/app/shared/*"],
       "@kanban/*": ["src/app/features/kanban/*"],
-      "@services/*": ["src/app/services/*"]
+      "@services/*": ["src/app/shared/services/*"]
     }
   },
   "include": ["src/**/*.ts"],
