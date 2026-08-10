@@ -1,4 +1,13 @@
-<section class="kanban-container" aria-label="Kanban Board" (contextmenu)="onContextMenu($event)">
+@let columns = kanban().columns;
+@let columnsOrder = kanban().columnsOrder;
+
+<section
+  class="kanban-container"
+  aria-label="Kanban Board"
+  [class.is-loading]="columnsApi.isLoading()"
+  [class.is-tasks-loading]="kanbanApi.isLoading()"
+  (contextmenu)="onContextMenu($event)"
+>
   <header class="kanban-header">
     <label for="kanban-new-task-input" class="visually-hidden">
       {{ 'ENTER_TASK_NAME' | translate }}
@@ -22,22 +31,20 @@
     @let moveBackTitle = 'TASKS.MOVE_BACK' | translate;
     @let moveNextTitle = 'TASKS.MOVE_NEXT' | translate;
     @let removeTitle = 'TASKS.REMOVE' | translate;
-    @let board = kanban();
 
     @for (
-      columnName of board.columnsOrder;
+      columnName of columnsOrder;
       track columnName;
       let columnLast = $last;
       let columnFirst = $first
     ) {
-      @let column = board.columns[columnName];
+      @let column = columns[columnName];
+      @let columnTranslate = 'COLUMNS.' + columnName | translate;
 
-      @if (column) {
-        @let columnTranslate = 'COLUMNS.' + columnName | translate;
+      <div class="kanban-column" [attr.aria-label]="columnTranslate">
+        <h3 class="kanban-column__title">{{ columnTranslate }}</h3>
 
-        <div class="kanban-column" [attr.aria-label]="columnTranslate">
-          <h3 class="kanban-column__title">{{ columnTranslate }}</h3>
-
+        @if (column) {
           <ul
             class="kanban-list"
             cdkDropList
@@ -46,8 +53,8 @@
             [attr.aria-labelledby]="'kanban-col-title-' + columnName"
             (cdkDropListDropped)="drop($event)"
           >
-            @for (taskId of column.tasksOrder; track taskId) {
-              @let task = column.tasks?.[taskId];
+            @for (taskId of column.tasksOrder; track taskId; let index = $index) {
+              @let task = column.tasks[taskId];
 
               @if (task) {
                 <li
@@ -100,8 +107,8 @@
               }
             }
           </ul>
-        </div>
-      }
+        }
+      </div>
     }
 
     <context-menu #contextMenu>

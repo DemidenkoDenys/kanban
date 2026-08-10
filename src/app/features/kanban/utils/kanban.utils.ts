@@ -11,7 +11,7 @@ import {
   KeyboardActions,
 } from '@kanban/models/kanban.models';
 
-import { KeyCode } from '@shared/models/key-codes.enum';
+import { Z, UP_ARROW, DOWN_ARROW, LEFT_ARROW, RIGHT_ARROW, DELETE } from '@angular/cdk/keycodes';
 import { forEach, isEmpty, min, omit, without } from 'lodash-es';
 
 export const updateShallowDeep = <R = Kanban | Columns | Tasks | Task>(
@@ -97,14 +97,15 @@ export const toUpdatedSubtask = (
   path = ['columns', column],
 ): Kanban => {
   forEach(chain, (task) => path.push('tasks', task.id));
-  return updateShallowDeep(kanban, path, chain.at(-1));
+  const subtask = Task.update(chain.at(-1));
+  return updateShallowDeep(kanban, path, subtask);
 };
 
 export const calculateProgress = (
   subtasks?: Tasks,
 ): { done: number; count: number; progress: number } => {
   if (!subtasks || isEmpty(subtasks)) {
-    return { done: 0, count: 0, progress: 0 };
+    return { done: 0, count: 0, progress: 100 };
   }
 
   let done = 0;
@@ -138,15 +139,17 @@ export const toCalculatedProgress = (
   column: ColumnEnums,
   taskId: string,
 ): Kanban => {
-  const { tasks: subtasks, tasksOrder } = kanban.columns[column]?.tasks?.[taskId] ?? {};
+  const rootTask = kanban.columns[column]?.tasks?.[taskId];
+  const { tasks: subtasks, tasksOrder } = rootTask ?? {};
 
   if (!tasksOrder?.length) {
     return kanban;
   }
 
   const { progress } = calculateProgress(subtasks);
-  const progressPath = ['columns', column, 'tasks', taskId, 'progress'];
-  return updateShallowDeep<Kanban>(kanban, progressPath, progress);
+  const path = ['columns', column, 'tasks', taskId];
+  const task = { ...rootTask, progress, version: crypto.randomUUID() };
+  return updateShallowDeep<Kanban>(kanban, path, task);
 };
 
 export const getTaskColumn = (kanban: Kanban, taskId?: string | null): ColumnEnums | null => {
@@ -166,28 +169,28 @@ export const moveItem = <T = Task>(array: Array<T>, from: number, to: number): A
   return array.toSpliced(from, 1).toSpliced(to, 0, array[from]);
 };
 
-export const getKeyAction = ({ code, ctrlKey, shiftKey }: KeyboardEvent): KeyboardActions => {
+export const getKeyAction = ({ keyCode, ctrlKey, shiftKey }: KeyboardEvent): KeyboardActions => {
   const { _none, redo, undo, moveBack, moveNext, delete: remove } = KeyboardAction;
   const { focusUp, focusDown, focusLeft, focusRight } = KeyboardAction;
 
-  switch (code) {
-    case KeyCode.KeyZ: {
+  switch (keyCode) {
+    case Z: {
       return ctrlKey ? (shiftKey ? redo : undo) : _none;
     }
 
-    case KeyCode.ArrowRight:
+    case RIGHT_ARROW:
       return ctrlKey ? moveNext : focusRight;
 
-    case KeyCode.ArrowLeft:
+    case LEFT_ARROW:
       return ctrlKey ? moveBack : focusLeft;
 
-    case KeyCode.ArrowUp:
+    case UP_ARROW:
       return focusUp;
 
-    case KeyCode.ArrowDown:
+    case DOWN_ARROW:
       return focusDown;
 
-    case KeyCode.Delete:
+    case DELETE:
       return remove;
 
     default:

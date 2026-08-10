@@ -1,3 +1,5 @@
+import { shortId } from '@shared/utils/short-if.util';
+
 export const ColumnEnum = {
   backlog: 'backlog',
   todo: 'todo',
@@ -7,25 +9,38 @@ export const ColumnEnum = {
 export type ColumnEnums = keyof typeof ColumnEnum;
 
 export class Task {
-  id = Math.random().toString(36).substring(2, 9);
-  progress?: number;
+  id = shortId(7);
+  done = false;
+  progress = 100;
   description = '';
-  tasksOrder?: Array<string>;
-  tasks?: Tasks;
-  done?: boolean;
+  tasks: Tasks = {};
+  tasksOrder: Array<string> = [];
+  version = crypto.randomUUID();
 
-  constructor(description = '') {
-    Object.assign(this, { description });
+  constructor(data?: Partial<Task> | null, id?: number) {
+    Object.assign(this, data ?? {});
+    if (id) {
+      this.id = `task_${id}`;
+    }
+  }
+
+  static update(task?: Task): Task {
+    if (!task) return new Task();
+    return new Task({ ...task, version: crypto.randomUUID() });
   }
 }
 
 export type Tasks = Partial<Record<string, Task | null>>;
 
-export interface Column {
-  id: string;
-  name: ColumnEnums;
-  tasks?: Tasks;
-  tasksOrder?: Array<string>;
+export class Column {
+  id = Math.random().toString();
+  name: ColumnEnums = ColumnEnum.backlog;
+  tasks: Tasks = {};
+  tasksOrder: Array<string> = [];
+
+  constructor(id: number, column: ColumnEnums) {
+    Object.assign(this, { name: column, id: `col_${id}` });
+  }
 }
 
 export type Columns = Partial<Record<ColumnEnums, Column>>;

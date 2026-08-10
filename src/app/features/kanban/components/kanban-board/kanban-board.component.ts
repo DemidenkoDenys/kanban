@@ -52,6 +52,9 @@ export class KanbanComponent {
   public contextMenu = viewChild<ContextMenuComponent>('contextMenu');
   public contextMenuTask = signal<{ task: Task; column: ColumnEnums } | null>(null);
 
+  public kanbanApi = this.service.kanbanApi;
+  public columnsApi = this.service.columns;
+
   public readonly isUndoPossible = computed(() => this.service.isUndoPossible());
   public readonly isRedoPossible = computed(() => this.service.isRedoPossible());
 
@@ -79,7 +82,7 @@ export class KanbanComponent {
       });
     });
 
-    // effect(() => console.log(this.service.kanban()));
+    effect(() => console.log(this.service.kanban()));
   }
 
   public addTask(): void {

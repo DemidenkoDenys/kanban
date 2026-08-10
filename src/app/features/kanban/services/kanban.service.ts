@@ -1,4 +1,4 @@
-import { inject, Injectable, signal } from '@angular/core';
+import { effect, inject, Injectable, signal } from '@angular/core';
 import { kanban } from '@kanban/data/kanban';
 import { KanbanUndoService } from '@kanban/services/kanbar-undo.service';
 
@@ -20,18 +20,42 @@ import {
   toUpdatedSubtask,
   toCalculatedProgress,
 } from '@kanban/utils/kanban.utils';
+import { rxResource } from '@angular/core/rxjs-interop';
+import { map, timer } from 'rxjs';
+import { KanbanMapper } from '@kanban/mapper/kanban.mapper';
+import { columnsApi, tasksApi } from '@kanban/data/kanban.api';
 
 @Injectable()
 export class KanbanStoreService {
-  public kanban = signal<Kanban>(kanban);
+  public columns = rxResource<Array<ColumnEnums>, Array<ColumnEnums>>({
+    stream: () => timer(500).pipe(map(() => columnsApi)),
+  });
+
+  public kanbanApi = rxResource<Kanban, any>({
+    params: () => this.columns.value(),
+    stream: ({ params }) => {
+      return timer(500).pipe(map(() => KanbanMapper.toViewModel(params, tasksApi)));
+    },
+    defaultValue: new Kanban(),
+  });
+
+  public kanban = signal<Kanban>(new Kanban());
   public neighbours = signal<Neighbours>(getNeighbours(kanban));
   public undoService = inject(KanbanUndoService);
   public isUndoPossible = this.undoService.isUndoPossible;
   public isRedoPossible = this.undoService.isRedoPossible;
 
+  constructor() {
+    effect(() => {
+      this.kanban.set(this.kanbanApi.value());
+    });
+  }
+
   public addTask(description: string): void {
     this.undoService.addAction(this.kanban());
-    this.kanban.update((kanban) => toAddedTask(kanban, ColumnEnum.backlog, new Task(description)));
+    this.kanban.update((kanban) =>
+      toAddedTask(kanban, ColumnEnum.backlog, new Task({ description })),
+    );
     this.updateNeighbours(this.kanban());
   }
 

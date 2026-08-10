@@ -1,5 +1,6 @@
-import { computed, effect, Injectable, signal } from '@angular/core';
+import { computed, Injectable, signal } from '@angular/core';
 import { Kanban } from '@kanban/models/kanban.models';
+import { cloneDeep } from 'lodash-es';
 
 @Injectable()
 export class KanbanUndoService {
@@ -15,7 +16,7 @@ export class KanbanUndoService {
   public isRedoPossible = computed<boolean>(() => this.undones().length > 0);
 
   addAction(kanban: Kanban): void {
-    const kanbanCopy = structuredClone(kanban);
+    const kanbanCopy = cloneDeep(kanban);
     this.actions.update((actions) => [...actions, kanbanCopy]);
     this.undones.set([]);
   }
@@ -25,7 +26,7 @@ export class KanbanUndoService {
       return null;
     }
 
-    const lastAction = structuredClone(this.actions().at(-1));
+    const lastAction = cloneDeep(this.actions().at(-1));
 
     if (lastAction) {
       this.actions.update((actions) => actions.slice(0, -1));
