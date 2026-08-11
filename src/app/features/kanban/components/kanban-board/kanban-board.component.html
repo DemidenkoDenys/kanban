@@ -5,7 +5,7 @@
   class="kanban-container"
   aria-label="Kanban Board"
   [class.is-loading]="columnsApi.isLoading()"
-  [class.is-tasks-loading]="kanbanApi.isLoading()"
+  [class.is-tasks-loading]="!!columnsApi.value() && columnsOrder && !columnsOrder.length"
   (contextmenu)="onContextMenu($event)"
 >
   <header class="kanban-header">
@@ -33,12 +33,12 @@
     @let removeTitle = 'TASKS.REMOVE' | translate;
 
     @for (
-      columnName of columnsOrder;
+      columnName of columnsApi.value();
       track columnName;
       let columnLast = $last;
       let columnFirst = $first
     ) {
-      @let column = columns[columnName];
+      @let column = columns.get(columnName);
       @let columnTranslate = 'COLUMNS.' + columnName | translate;
 
       <div class="kanban-column" [attr.aria-label]="columnTranslate">
@@ -54,16 +54,17 @@
             (cdkDropListDropped)="drop($event)"
           >
             @for (taskId of column.tasksOrder; track taskId; let index = $index) {
-              @let task = column.tasks[taskId];
+              @let task = column.tasks.get(taskId);
 
               @if (task) {
                 <li
                   cdkDrag
                   kanban-task
-                  [focus]="focusTaskId() === task.id"
+                  [focus]="focusTaskId() === task.uid"
                   [column]="columnName"
                   [taskInput]="task"
-                  [cdkDragData]="task.id"
+                  [cdkDragData]="task.uid"
+                  [animatingTaskUid]="animatingTaskUid()"
                   (menuOpened)="onMenuOpened($event)"
                   (focusChange)="onFocusChange(task, $event)"
                   [attr.aria-label]="
@@ -98,7 +99,7 @@
                       id="kanban-task_{{ task.id }}_remove-button"
                       aria-hidden="true"
                       [attr.aria-label]="removeTitle"
-                      (click)="remove(task.id)"
+                      (click)="remove(task)"
                     >
                       <i class="fa-solid fa-xmark"></i>
                     </button>
@@ -122,7 +123,7 @@
             <i class="fa-solid fa-chevron-right"></i>&nbsp;<span>{{ moveNextTitle }}</span>
           </button>
 
-          <button (click)="remove(task.task.id); closeMenu()">
+          <button (click)="remove(task.task); closeMenu()">
             <i class="fa-solid fa-chevron-xmark"></i>&nbsp;<span>{{ removeTitle }}</span>
           </button>
         </nav>

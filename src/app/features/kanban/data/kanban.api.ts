@@ -1,5 +1,5 @@
 import { TaskDto } from '@kanban/dto/task.dto';
-import { ColumnEnums } from '@kanban/models/kanban.models';
+import { ColumnEnums } from '@kanban/models/kanban-column.model';
 
 export const columnsApi: Array<ColumnEnums> = ['backlog', 'todo', 'ongoing', 'done'];
 
@@ -25,7 +25,7 @@ export const tasksApi: Array<TaskDto> = [
   { id: 20, column: 'ongoing', description: 'Celebrate job offer' },
 
   { id: 98, description: 'Write end-to-end component tests', taskId: 97 },
-  { id: 97, description: 'Implement ARIA attributes', taskId: 94},
+  { id: 97, description: 'Implement ARIA attributes', taskId: 94 },
   { id: 96, description: 'Add responsive media queries', taskId: 92 },
   { id: 95, description: 'Initialize board state management', taskId: 92 },
   { id: 94, description: 'Implement Drag-and-Drop handlers', taskId: 92 },

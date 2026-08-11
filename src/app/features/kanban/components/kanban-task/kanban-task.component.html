@@ -12,9 +12,9 @@
     (focusout)="focusChange.emit(false)"
     (contextmenu)="onRightClick($event)"
     [class.complete]="task.progress === 100"
-    [style.--progress.%]="task.progress ?? 100"
+    [style.--vt-name]="animatingTaskUid() === task.uid ? task.uid : 'none'"
+    [style.--progress.%]="task.progress || 100"
     [class.grad-disabled]="disabled()"
-    [style.view-transition-name]="id"
   >
     <p id="{{ id }}__description">{{ task.description }}</p>
 

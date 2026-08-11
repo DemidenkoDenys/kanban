@@ -1,5 +1,8 @@
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+
 import {
   inject,
   effect,
@@ -14,14 +17,15 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 
-import { FormsModule } from '@angular/forms';
-import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
-import { TranslatePipe } from '@ngx-translate/core';
-import { KanbanStoreService } from '@kanban/services/kanban.service';
-import { ClickService } from 'src/app/shared/services/click.service';
+import { Task } from '@kanban/models/kanban-task.model';
+import { Direction } from '@shared/models/direction.model';
+import { ColumnEnums } from '@kanban/models/kanban-column.model';
+import { ClickService } from '@shared/services/click.service';
 import { getKeyAction } from '@kanban/utils/kanban.utils';
+import { TranslatePipe } from '@ngx-translate/core';
+import { KeyboardActions } from '@kanban/models/kanban-actions.enum';
+import { KanbanStoreService } from '@kanban/services/kanban.service';
 import { KanbanTaskComponent } from '../kanban-task/kanban-task.component';
-import { ColumnEnums, Direction, KeyboardActions, Task } from '@kanban/models/kanban.models';
 import { ContextMenuComponent } from '@shared/components/context-menu/context-menu.component';
 
 @Component({
@@ -51,9 +55,10 @@ export class KanbanComponent {
   public focusedTask = signal<Task | null>(null);
   public contextMenu = viewChild<ContextMenuComponent>('contextMenu');
   public contextMenuTask = signal<{ task: Task; column: ColumnEnums } | null>(null);
+  public animatingTaskUid = signal<string | null>(null);
 
   public kanbanApi = this.service.kanbanApi;
-  public columnsApi = this.service.columns;
+  public columnsApi = this.service.columnsApi;
 
   public readonly isUndoPossible = computed(() => this.service.isUndoPossible());
   public readonly isRedoPossible = computed(() => this.service.isRedoPossible());
@@ -82,7 +87,7 @@ export class KanbanComponent {
       });
     });
 
-    effect(() => console.log(this.service.kanban()));
+    // effect(() => console.log(this.service.kanban().toJS()));
   }
 
   public addTask(): void {
@@ -111,28 +116,18 @@ export class KanbanComponent {
 
   public drop(event: CdkDragDrop<any>): void {
     const { container: curr, previousContainer: prev, item, currentIndex: index } = event;
-    const task = prev.data[item.data] ?? null;
+    const task = prev.data.get(item.data) ?? null;
     const columnTo = curr.element.nativeElement.getAttribute('data-column') as ColumnEnums;
     const columnFrom = prev.element.nativeElement.getAttribute('data-column') as ColumnEnums;
     this.service.moveTask(task, columnFrom, columnTo, index);
   }
 
   public moveNext(task: Task | null): void {
-    if ('startViewTransition' in this.document) {
-      this.document.startViewTransition(() => {
-        this.service.moveNext(task);
-        this.appRef.tick();
-      });
-    }
+    this.animate(task, () => this.service.moveNext(task));
   }
 
   public moveBack(task: Task | null): void {
-    if ('startViewTransition' in this.document) {
-      this.document.startViewTransition(() => {
-        this.service.moveBack(task);
-        this.appRef.tick();
-      });
-    }
+    this.animate(task, () => this.service.moveBack(task));
   }
 
   private moveFocusedNext(): void {
@@ -144,11 +139,11 @@ export class KanbanComponent {
   }
 
   private deleteFocusedTask(): void {
-    this.remove(this.focusedTask()?.id ?? null);
+    this.remove(this.focusedTask() ?? null);
   }
 
-  public remove(taskId: string | null): void {
-    this.service.removeTask(taskId);
+  public remove(task: Task | null): void {
+    this.service.removeTask(task);
   }
 
   private focusNextTask(direction: Direction): void {
@@ -160,5 +155,21 @@ export class KanbanComponent {
 
   public onSubtaskChange(column: ColumnEnums, subtaskChain: Array<Task>): void {
     this.service.updateSubtask(column, subtaskChain);
+  }
+
+  private animate(task: Task | null, action: () => void): void {
+    if (!('startViewTransition' in this.document)) {
+      action();
+      return;
+    }
+
+    this.animatingTaskUid.set(task?.uid ?? null);
+
+    this.document.startViewTransition(() => {
+      action();
+      this.appRef.tick();
+    });
+
+    setTimeout(() => this.animatingTaskUid.set(null), 100);
   }
 }

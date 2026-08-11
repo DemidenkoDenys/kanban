@@ -1,18 +1,10 @@
-import {
-  Task,
-  Tasks,
-  Kanban,
-  Columns,
-  Neighbour,
-  Neighbours,
-  KanbanPath,
-  ColumnEnums,
-  KeyboardAction,
-  KeyboardActions,
-} from '@kanban/models/kanban.models';
-
+import { Task, Tasks } from '@kanban/models/kanban-task.model';
+import { Kanban, KanbanPath } from '@kanban/models/kanban.models';
+import { ColumnEnums, Columns } from '@kanban/models/kanban-column.model';
+import { Neighbour, Neighbours } from '@kanban/models/kanban-neighboars.model';
+import { forEach, isEmpty, min, omit } from 'lodash-es';
+import { KeyboardAction, KeyboardActions } from '@kanban/models/kanban-actions.enum';
 import { Z, UP_ARROW, DOWN_ARROW, LEFT_ARROW, RIGHT_ARROW, DELETE } from '@angular/cdk/keycodes';
-import { forEach, isEmpty, min, omit, without } from 'lodash-es';
 
 export const updateShallowDeep = <R = Kanban | Columns | Tasks | Task>(
   obj: R,
@@ -36,69 +28,6 @@ export const updateShallowDeep = <R = Kanban | Columns | Tasks | Task>(
     ...nestedObj,
     [head]: updateShallowDeep(current, nestPath, value),
   };
-};
-
-export const toAddedTaskId = (
-  kanban: Kanban,
-  column: ColumnEnums,
-  taskId: string,
-  index?: number,
-): Kanban => {
-  const order = kanban.columns[column]?.tasksOrder ?? [];
-  const path: KanbanPath = ['columns', column, 'tasksOrder'];
-  const value = order.toSpliced(index ?? order.length, 0, taskId);
-  return updateShallowDeep<Kanban>(kanban, path, value);
-};
-
-export const toAddedTask = (
-  kanban: Kanban,
-  column: ColumnEnums,
-  task: Task,
-  index?: number,
-): Kanban => {
-  const kanbak2 = toAddedTaskId(kanban, column, task.id, index);
-  const path = ['columns', column, 'tasks', task.id];
-  return updateShallowDeep<Kanban>(kanbak2, path, task);
-};
-
-export const toRemovedTask = (
-  kanban: Kanban,
-  column: ColumnEnums | null,
-  taskId: string,
-): Kanban => {
-  if (!column) return kanban;
-
-  const path2 = ['columns', column, 'tasks', taskId];
-  const kanban2 = updateShallowDeep<Kanban>(kanban, path2);
-
-  const path3 = ['columns', column, 'tasksOrder'];
-  const order3 = without(kanban.columns[column]?.tasksOrder, taskId);
-  const kanban3 = updateShallowDeep<Kanban>(kanban2, path3, order3);
-
-  return kanban3;
-};
-
-export const toMovedTask = (
-  kanban: Kanban,
-  task: Task,
-  from: ColumnEnums,
-  to: ColumnEnums,
-  index?: number,
-): Kanban => {
-  const kanban2 = toRemovedTask(kanban, from, task.id);
-  const kanban3 = toAddedTask(kanban2, to, task, index);
-  return kanban3;
-};
-
-export const toUpdatedSubtask = (
-  kanban: Kanban,
-  column: ColumnEnums,
-  chain: Array<Task>,
-  path = ['columns', column],
-): Kanban => {
-  forEach(chain, (task) => path.push('tasks', task.id));
-  const subtask = Task.update(chain.at(-1));
-  return updateShallowDeep(kanban, path, subtask);
 };
 
 export const calculateProgress = (
@@ -134,39 +63,17 @@ export const calculateProgress = (
   return { done, count, progress };
 };
 
-export const toCalculatedProgress = (
-  kanban: Kanban,
-  column: ColumnEnums,
-  taskId: string,
-): Kanban => {
-  const rootTask = kanban.columns[column]?.tasks?.[taskId];
-  const { tasks: subtasks, tasksOrder } = rootTask ?? {};
-
-  if (!tasksOrder?.length) {
-    return kanban;
-  }
-
-  const { progress } = calculateProgress(subtasks);
-  const path = ['columns', column, 'tasks', taskId];
-  const task = { ...rootTask, progress, version: crypto.randomUUID() };
-  return updateShallowDeep<Kanban>(kanban, path, task);
-};
-
 export const getTaskColumn = (kanban: Kanban, taskId?: string | null): ColumnEnums | null => {
   if (!taskId || !kanban.columns) return null;
 
   for (const column of kanban.columnsOrder) {
     const columnName = column as ColumnEnums;
-    if (kanban.columns[columnName]?.tasksOrder?.includes(taskId)) {
+    if (kanban.columns.get(columnName)?.tasksOrder?.includes(taskId)) {
       return columnName;
     }
   }
 
   return null;
-};
-
-export const moveItem = <T = Task>(array: Array<T>, from: number, to: number): Array<T> => {
-  return array.toSpliced(from, 1).toSpliced(to, 0, array[from]);
 };
 
 export const getKeyAction = ({ keyCode, ctrlKey, shiftKey }: KeyboardEvent): KeyboardActions => {
@@ -202,23 +109,24 @@ export const getNeighbours = (kanban: Kanban): Neighbours => {
   const { columns, columnsOrder } = kanban;
   const neighbours: Neighbours = {};
 
-  columnsOrder.forEach((column, ci) => {
-    const prevTasks = columns[columnsOrder[ci - 1]]?.tasksOrder ?? [];
-    const nextTasks = columns[columnsOrder[ci + 1]]?.tasksOrder ?? [];
-    const isLastColumn = ci === columnsOrder.length - 1;
+  columnsOrder.forEach((columnKey, ci) => {
+    const prevTasks = columns.get(columnsOrder[ci - 1])?.tasksOrder ?? new Map();
+    const nextTasks = columns.get(columnsOrder[ci + 1])?.tasksOrder ?? new Map();
+    const isLastCol = ci === columnsOrder.length - 1;
+    const column = columns.get(columnKey);
 
-    if (columns[column]) {
-      const tasksOrder = columns[column]?.tasksOrder ?? [];
+    if (column) {
+      const tasksOrder = column.tasksOrder ?? new Map();
 
       tasksOrder.forEach((taskId, ti) => {
         const neighbour = new Neighbour();
-        const isLastTask = ti === tasksOrder.length - 1;
-        const lastNextIndex = nextTasks.length - 1;
+        const isLastTask = ti === tasksOrder.size - 1;
+        const lastNextIndex = nextTasks.size - 1;
 
-        neighbour.up = ti ? tasksOrder[ti - 1] : ci ? (prevTasks?.at(-1) ?? null) : null;
-        neighbour.down = isLastTask ? (isLastColumn ? null : nextTasks[0]) : tasksOrder[ti + 1];
-        neighbour.left = ci ? (prevTasks[min([ti, prevTasks.length - 1])] ?? null) : null;
-        neighbour.right = isLastColumn ? null : (nextTasks[min([ti, lastNextIndex])] ?? null);
+        neighbour.up = ti ? tasksOrder.get(ti - 1) : ci ? (prevTasks?.get(-1) ?? null) : null;
+        neighbour.down = isLastTask ? isLastCol ? null : nextTasks.get(0) : tasksOrder.get(ti + 1);
+        neighbour.left = ci ? (prevTasks.get(min([ti, prevTasks.size - 1])) ?? null) : null;
+        neighbour.right = isLastCol ? null : (nextTasks.get(min([ti, lastNextIndex])) ?? null);
 
         neighbours[taskId] = neighbour;
       });

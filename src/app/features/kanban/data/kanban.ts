@@ -1,9 +1,9 @@
 import { Kanban } from '@kanban/models/kanban.models';
 
-export const kanban: Kanban = {
-  columnsOrder: [],
-  columns: {},
-};
+// export const kanban: Kanban = {
+//   columnsOrder: [],
+//   columns: {},
+// };
 
 // export const kanban: Kanban = {
 //   columnsOrder: ['backlog', 'todo', 'ongoing', 'done'],

@@ -15,9 +15,8 @@ export class KanbanUndoService {
   public isUndoPossible = computed<boolean>(() => this.actions().length > 0);
   public isRedoPossible = computed<boolean>(() => this.undones().length > 0);
 
-  addAction(kanban: Kanban): void {
-    const kanbanCopy = cloneDeep(kanban);
-    this.actions.update((actions) => [...actions, kanbanCopy]);
+  saveUndoState(kanban: Kanban): void {
+    this.actions.update((actions) => [...actions, kanban.asImmutable()]);
     this.undones.set([]);
   }
 

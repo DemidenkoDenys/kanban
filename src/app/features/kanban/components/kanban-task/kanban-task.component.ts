@@ -8,7 +8,8 @@ import {
   effect,
 } from '@angular/core';
 
-import { ColumnEnums, Task } from '@kanban/models/kanban.models';
+import { Task } from '@kanban/models/kanban-task.model';
+import { ColumnEnums } from '@kanban/models/kanban-column.model';
 import { MatMenuModule } from '@angular/material/menu';
 import { KanbanSubtasks } from '../kanban-subtasks/kanban-subtasks';
 
@@ -26,6 +27,7 @@ export class KanbanTaskComponent {
   public readonly menuOpened = output<{ event: MouseEvent; task: Task; column: ColumnEnums }>();
   public readonly focusChange = output<boolean>();
   public readonly subtaskChange = output<Array<Task>>();
+  public readonly animatingTaskUid = input<string | null>();
 
   private readonly article = viewChild<ElementRef>('article');
 

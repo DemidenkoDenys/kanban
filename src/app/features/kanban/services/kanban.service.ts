@@ -1,74 +1,70 @@
-import { effect, inject, Injectable, signal } from '@angular/core';
-import { kanban } from '@kanban/data/kanban';
-import { KanbanUndoService } from '@kanban/services/kanbar-undo.service';
-
-import {
-  Task,
-  Kanban,
-  Direction,
-  ColumnEnum,
-  Neighbours,
-  ColumnEnums,
-} from '@kanban/models/kanban.models';
-
-import {
-  toAddedTask,
-  toMovedTask,
-  toRemovedTask,
-  getNeighbours,
-  getTaskColumn,
-  toUpdatedSubtask,
-  toCalculatedProgress,
-} from '@kanban/utils/kanban.utils';
+import { inject, Injectable, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
-import { map, timer } from 'rxjs';
+import { map } from 'rxjs';
+
+import { Task } from '@kanban/models/kanban-task.model';
+import { Kanban } from '@kanban/models/kanban.models';
+import { TaskDto } from '@kanban/dto/task.dto';
+import { Direction } from '@shared/models/direction.model';
+import { HttpService } from '@shared/services/http.service';
+import { ColumnEnums } from '@kanban/models/kanban-column.model';
 import { KanbanMapper } from '@kanban/mapper/kanban.mapper';
+import { WithUndoRedo } from '../decorators/kanban-undo.decorator';
+import { getTaskColumn } from '@kanban/utils/kanban.utils';
+import { KanbanUndoService } from '@kanban/services/kanbar-undo.service';
 import { columnsApi, tasksApi } from '@kanban/data/kanban.api';
 
 @Injectable()
 export class KanbanStoreService {
-  public columns = rxResource<Array<ColumnEnums>, Array<ColumnEnums>>({
-    stream: () => timer(500).pipe(map(() => columnsApi)),
-  });
-
-  public kanbanApi = rxResource<Kanban, any>({
-    params: () => this.columns.value(),
-    stream: ({ params }) => {
-      return timer(500).pipe(map(() => KanbanMapper.toViewModel(params, tasksApi)));
-    },
-    defaultValue: new Kanban(),
-  });
-
   public kanban = signal<Kanban>(new Kanban());
-  public neighbours = signal<Neighbours>(getNeighbours(kanban));
+  public service = inject(HttpService);
   public undoService = inject(KanbanUndoService);
   public isUndoPossible = this.undoService.isUndoPossible;
   public isRedoPossible = this.undoService.isRedoPossible;
 
-  constructor() {
-    effect(() => {
-      this.kanban.set(this.kanbanApi.value());
-    });
+  public columnsApi = rxResource<Array<ColumnEnums>, Array<ColumnEnums>>({
+    stream: () => this.service.get(columnsApi),
+  });
+
+  public kanbanApi = rxResource<Kanban, Array<ColumnEnums>>({
+    params: () => this.columnsApi.value() ?? [],
+    stream: ({ params }) => this.service.get(tasksApi).pipe(map((t) => this.init(params, t))),
+    defaultValue: new Kanban(),
+  });
+
+  public init(columns: Array<ColumnEnums>, tasks: Array<TaskDto>): Kanban {
+    const kanban = KanbanMapper.toViewModel(columns, tasks);
+    this.kanban.set(kanban);
+    return kanban;
   }
 
+  @WithUndoRedo()
   public addTask(description: string): void {
-    this.undoService.addAction(this.kanban());
-    this.kanban.update((kanban) =>
-      toAddedTask(kanban, ColumnEnum.backlog, new Task({ description })),
-    );
-    this.updateNeighbours(this.kanban());
+    this.kanban.update((kanban) => kanban.addNewTask(description));
   }
 
+  @WithUndoRedo()
   public moveTask(task: Task, from: ColumnEnums, to: ColumnEnums | null, index?: number): void {
     if (task && from && to) {
-      this.undoService.addAction(this.kanban());
-      this.kanban.update((kanban) => toMovedTask(kanban, task, from, to, index));
-      this.updateNeighbours(this.kanban());
+      this.kanban.update((kanban) => kanban.moveTask(from, to, task, index));
+    }
+  }
+
+  @WithUndoRedo()
+  public updateSubtask(column: ColumnEnums, tasksChain: Array<Task>): void {
+    this.kanban.update((kanban) => kanban.updateSubtask(column, tasksChain));
+  }
+
+  @WithUndoRedo()
+  public removeTask(task: Task | null): void {
+    const column = getTaskColumn(this.kanban(), task?.uid) ?? null;
+    if (column && task?.uid) {
+      this.kanban.update((kanban) => kanban.removeTask(column, task, true));
     }
   }
 
   public moveNext(task: Task | null): void {
-    const column = getTaskColumn(this.kanban(), task?.id) ?? null;
+    const column = getTaskColumn(this.kanban(), task?.uid) ?? null;
     if (column && task) {
       const columns = this.kanban().columnsOrder;
       const nextIndex = columns.indexOf(column) + 1;
@@ -78,7 +74,7 @@ export class KanbanStoreService {
   }
 
   public moveBack(task: Task | null): void {
-    const column = getTaskColumn(this.kanban(), task?.id) ?? null;
+    const column = getTaskColumn(this.kanban(), task?.uid) ?? null;
     if (column && task) {
       const columns = this.kanban().columnsOrder;
       const index = columns.indexOf(column);
@@ -88,19 +84,9 @@ export class KanbanStoreService {
     }
   }
 
-  public removeTask(taskId: string | null): void {
-    const column = getTaskColumn(this.kanban(), taskId) ?? null;
-    if (column && taskId) {
-      this.undoService.addAction(this.kanban());
-      this.kanban.update((kanban) => toRemovedTask(kanban, column, taskId));
-      this.updateNeighbours(this.kanban());
-    }
-  }
-
   public undoAction(): void {
     const lastKanban = this.undoService.undoAction(this.kanban());
     if (lastKanban) {
-      this.updateNeighbours(lastKanban);
       this.kanban.update(() => lastKanban);
     }
   }
@@ -108,24 +94,12 @@ export class KanbanStoreService {
   public redoAction(): void {
     const lastKanban = this.undoService.redoAction();
     if (lastKanban) {
-      this.updateNeighbours(lastKanban);
       this.kanban.update(() => lastKanban);
     }
   }
 
-  public updateSubtask(column: ColumnEnums, tasksChain: Array<Task>): void {
-    if (!column || !tasksChain?.length) return;
-    this.kanban.update((kanban) => {
-      const kanban2 = toUpdatedSubtask(kanban, column, tasksChain);
-      return toCalculatedProgress(kanban2, column, tasksChain[0].id);
-    });
-  }
-
   public getNeighborTaskId = (task: Task | null, direction: Direction): string | null => {
-    return task ? this.neighbours()[task.id][direction] : null;
+    const neighbours = this.kanban().neighbours;
+    return task ? (neighbours ? neighbours[task.uid][direction] : null) : null;
   };
-
-  private updateNeighbours(kanban: Kanban): void {
-    this.neighbours.set(getNeighbours(kanban));
-  }
 }

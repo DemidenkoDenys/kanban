@@ -1,4 +1,4 @@
-import { ColumnEnums } from '@kanban/models/kanban.models';
+import { ColumnEnums } from '@kanban/models/kanban-column.model';
 
 export interface TaskDto {
   id: number;

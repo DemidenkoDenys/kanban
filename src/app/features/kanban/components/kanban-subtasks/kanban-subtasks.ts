@@ -1,7 +1,7 @@
-import { afterNextRender, Component, input, output } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 import { MatCheckboxChange, MatCheckboxModule } from '@angular/material/checkbox';
 import { KeyValuePipe } from '@angular/common';
-import { Task, Tasks } from '@kanban/models/kanban.models';
+import { Task, Tasks } from '@kanban/models/kanban-task.model';
 
 @Component({
   selector: 'kanban-subtasks',
