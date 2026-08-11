@@ -46,6 +46,10 @@ export class Column extends ColumnRecordFactory implements ColumnProps {
     return this.getIn(['tasks', taskId]) as Task;
   }
 
+  updateTask(uid: string, data: Partial<Task>): Column {
+    return this.updateIn(['tasks', uid], (task: any) => ({ ...task, ...data }));
+  }
+
   removeTask(taskId: string): Column {
     return this.updateIn(['tasks'], (tasks: any) => tasks.delete(taskId)).updateIn(
       ['tasksOrder'],

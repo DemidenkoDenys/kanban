@@ -8,15 +8,21 @@
     tabindex="0"
     [id]="id"
     (click)="onClick()"
-    (focus)="focusChange.emit(true)"
-    (focusout)="focusChange.emit(false)"
+    (focus)="onFocus(true)"
+    (focusout)="onFocus(false)"
+    (dblclick)="onDoubleClick($event)"
     (contextmenu)="onRightClick($event)"
+    (keydown.enter)="onDescriptionChange()"
     [class.complete]="task.progress === 100"
     [style.--vt-name]="animatingTaskUid() === task.uid ? task.uid : 'none'"
     [style.--progress.%]="task.progress || 100"
     [class.grad-disabled]="disabled()"
   >
-    <p id="{{ id }}__description">{{ task.description }}</p>
+    @if (isEditing()) {
+      <input #input type="text" [value]="task.description" (blur)="onDescriptionChange()" />
+    } @else {
+      <p id="{{ id }}__description">{{ task.description }}</p>
+    }
 
     @if (task.tasks) {
       <kanban-subtasks

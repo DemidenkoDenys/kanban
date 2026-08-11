@@ -6,6 +6,7 @@ import {
   ElementRef,
   ChangeDetectionStrategy,
   effect,
+  signal,
 } from '@angular/core';
 
 import { Task } from '@kanban/models/kanban-task.model';
@@ -24,28 +25,51 @@ export class KanbanTaskComponent {
   public readonly column = input.required<ColumnEnums>();
   public readonly disabled = input<boolean>();
   public readonly taskInput = input.required<Task>();
+  public readonly isEditing = signal<boolean>(false);
   public readonly menuOpened = output<{ event: MouseEvent; task: Task; column: ColumnEnums }>();
   public readonly focusChange = output<boolean>();
   public readonly subtaskChange = output<Array<Task>>();
   public readonly animatingTaskUid = input<string | null>();
+  public readonly descriptionChange = output<string>();
 
+  private readonly input = viewChild<ElementRef>('input');
   private readonly article = viewChild<ElementRef>('article');
 
   constructor() {
     effect(() => {
-      const article = this.article();
-      if (article?.nativeElement) {
-        if (this.focus()) {
-          article.nativeElement.focus();
-        } else {
-          article.nativeElement.blur();
-        }
-      }
+      this.focus() ? this.article()?.nativeElement.focus() : this.article()?.nativeElement.blur();
+    });
+
+    effect(() => {
+      this.input()?.nativeElement?.focus();
     });
   }
 
   onClick(): void {
-    this.article()?.nativeElement?.focus();
+    setTimeout(() => {
+      if (this.isEditing()) {
+        this.article()?.nativeElement?.blur();
+      } else {
+        this.article()?.nativeElement?.focus();
+      }
+    });
+  }
+
+  onDoubleClick(event: Event): void {
+    event.stopPropagation();
+    this.isEditing.set(true);
+  }
+
+  onDescriptionChange() {
+    const description = (this.input()?.nativeElement as HTMLInputElement)?.value;
+    if (description) {
+      this.descriptionChange.emit(description);
+      this.isEditing.set(false);
+    }
+  }
+
+  onFocus(inFocus: boolean): void {
+    this.focusChange.emit(inFocus);
   }
 
   onRightClick(event: MouseEvent) {

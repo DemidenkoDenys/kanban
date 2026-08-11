@@ -157,6 +157,10 @@ export class KanbanComponent {
     this.service.updateSubtask(column, subtaskChain);
   }
 
+  public onDescriptionChange(description: string, uid: string): void {
+    this.service.updateTask(uid, { description });
+  }
+
   private animate(task: Task | null, action: () => void): void {
     if (!('startViewTransition' in this.document)) {
       action();

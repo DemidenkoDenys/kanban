@@ -67,6 +67,7 @@
                   [animatingTaskUid]="animatingTaskUid()"
                   (menuOpened)="onMenuOpened($event)"
                   (focusChange)="onFocusChange(task, $event)"
+                  (descriptionChange)="onDescriptionChange($event, task.uid)"
                   [attr.aria-label]="
                     columnTranslate + ' ' + ('TASKS.TASK' | translate) + ' - ' + task.description
                   "

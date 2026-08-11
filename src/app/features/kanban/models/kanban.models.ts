@@ -43,6 +43,10 @@ export class Kanban extends KanbanFactory implements IKanban {
     return kanban2.insertTask(to, task, index).updatedNeighbours();
   }
 
+  public updateTask(column: ColumnEnums, uid: string, data: Partial<Task>): Kanban {
+    return this.updateIn(['columns', column], (col: any) => col.updateTask(uid, data));
+  }
+
   public updateSubtask(column: ColumnEnums, tasksChain: Array<Task>): Kanban {
     return this.updateIn(['columns', column], (col: any) => col.updateSubtask(tasksChain));
   }

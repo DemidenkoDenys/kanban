@@ -51,6 +51,14 @@ export class KanbanStoreService {
   }
 
   @WithUndoRedo()
+  public updateTask(uid: string, data: Partial<Task>): void {
+    const column = getTaskColumn(this.kanban(), uid) ?? null;
+    if (column) {
+      this.kanban.update((kanban) => kanban.updateTask(column, uid, data));
+    }
+  }
+
+  @WithUndoRedo()
   public updateSubtask(column: ColumnEnums, tasksChain: Array<Task>): void {
     this.kanban.update((kanban) => kanban.updateSubtask(column, tasksChain));
   }
