@@ -1,14 +1,18 @@
-import { Component, signal, HostListener, ChangeDetectionStrategy } from '@angular/core';
+import {
+  signal,
+  inject,
+  Component,
+  ElementRef,
+  HostListener,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 
 @Component({
   selector: 'context-menu',
   template: `
     @if (isOpen()) {
-      <div class="backdrop" (click)="close()" (contextmenu)="backdropClicked($event)"></div>
       <div class="anchor" [style.left.px]="x()" [style.top.px]="y()"></div>
-      <div class="menu">
-        <ng-content />
-      </div>
+      <div class="menu"><ng-content /></div>
     }
   `,
   styles: [
@@ -40,14 +44,18 @@ import { Component, signal, HostListener, ChangeDetectionStrategy } from '@angul
   ],
   host: {
     '(window:wheel)': 'close()',
+    '(document:click)': 'onDocumentClick($event)',
+    '(document:contextmenu)': 'onRightClick($event)',
   },
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ContextMenuComponent {
-  rect = signal<DOMRect | null>(null);
-  isOpen = signal(false);
-  x = signal(0);
-  y = signal(0);
+  public readonly x = signal(0);
+  public readonly y = signal(0);
+  public readonly rect = signal<DOMRect | null>(null);
+  public readonly isOpen = signal(false);
+
+  private readonly elementRef = inject(ElementRef);
 
   open(event: MouseEvent) {
     event.preventDefault();
@@ -57,10 +65,9 @@ export class ContextMenuComponent {
     this.isOpen.set(true);
   }
 
-  backdropClicked(event: MouseEvent) {
+  onRightClick(event: MouseEvent) {
     if (this.isInTarget(event)) {
-      this.x.set(event.clientX);
-      this.y.set(event.clientY);
+      this.open(event);
     } else {
       this.close();
     }
@@ -78,6 +85,12 @@ export class ContextMenuComponent {
 
   close() {
     this.isOpen.set(false);
+  }
+
+  onDocumentClick(event: MouseEvent): void {
+    if (this.isOpen() && !this.elementRef.nativeElement.contains(event.target)) {
+      this.close();
+    }
   }
 
   @HostListener('window:keydown.escape')
