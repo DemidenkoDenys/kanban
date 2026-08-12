@@ -1,11 +1,13 @@
-@let columns = kanban().columns;
-@let columnsOrder = kanban().columnsOrder;
+@let columns = service.columns();
+@let tasksLoading = service.tasksLoading();
+@let columnsOrder = service.columnsOrder();
+@let columnsLoading = service.columnsLoading();
 
 <section
   class="kanban-container"
   aria-label="Kanban Board"
-  [class.is-loading]="columnsApi.isLoading()"
-  [class.is-tasks-loading]="!!columnsApi.value() && columnsOrder && !columnsOrder.length"
+  [class.is-loading]="columnsLoading"
+  [class.is-tasks-loading]="tasksLoading"
   (contextmenu)="onContextMenu($event)"
 >
   <header class="kanban-header">
@@ -32,36 +34,32 @@
     @let moveNextTitle = 'TASKS.MOVE_NEXT' | translate;
     @let removeTitle = 'TASKS.REMOVE' | translate;
 
-    @for (
-      columnName of columnsApi.value();
-      track columnName;
-      let columnLast = $last;
-      let columnFirst = $first
-    ) {
-      @let column = columns.get(columnName);
-      @let columnTranslate = 'COLUMNS.' + columnName | translate;
+    @for (column of columnsOrder; track column; let columnLast = $last; let columnFirst = $first) {
+      @let tasks = columns[column].tasks;
+      @let tasksOrder = columns[column].tasksOrder;
+      @let columnTranslate = 'COLUMNS.' + column | translate;
 
       <div class="kanban-column" [attr.aria-label]="columnTranslate">
         <h3 class="kanban-column__title">{{ columnTranslate }}</h3>
 
-        @if (column) {
+        @if (tasks) {
           <ul
             class="kanban-list"
             cdkDropList
-            [cdkDropListData]="column.tasks"
-            [attr.data-column]="columnName"
-            [attr.aria-labelledby]="'kanban-col-title-' + columnName"
+            [cdkDropListData]="tasks"
+            [attr.data-column]="column"
+            [attr.aria-labelledby]="'kanban-col-title-' + column"
             (cdkDropListDropped)="drop($event)"
           >
-            @for (taskId of column.tasksOrder; track taskId; let index = $index) {
-              @let task = column.tasks.get(taskId);
+            @for (taskId of tasksOrder; track taskId; let index = $index) {
+              @let task = tasks[taskId];
 
               @if (task) {
                 <li
                   cdkDrag
                   kanban-task
                   [focus]="focusTaskId() === task.uid"
-                  [column]="columnName"
+                  [column]="column"
                   [taskInput]="task"
                   [cdkDragData]="task.uid"
                   [animatingTaskUid]="animatingTaskUid()"
@@ -71,8 +69,8 @@
                   [attr.aria-label]="
                     columnTranslate + ' ' + ('TASKS.TASK' | translate) + ' - ' + task.description
                   "
-                  (subtaskChange)="onSubtaskChange(columnName, $event)"
-                  [cdkDragDisabled]="columnName === 'done'"
+                  (subtaskChange)="onSubtaskChange(column, $event)"
+                  [cdkDragDisabled]="column === 'done'"
                   id="kanban-task--{{ task.id }}"
                 >
                   <ng-container task-actions>

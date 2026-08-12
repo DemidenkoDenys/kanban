@@ -1,22 +1,31 @@
-import { shortId } from '@shared/utils/short-if.util';
+import { shortUid } from '@shared/utils/short-if.util';
+import { getUniqueId } from '@shared/utils/unique-id.util';
 
-export class Task {
-  id: number | null = null;
-  uid = shortId(7);
-  done = false;
-  progress = 100;
-  description = '';
-  tasks: Tasks = {};
-  tasksOrder: Array<string> = [];
-  version = crypto.randomUUID();
-
-  constructor(data?: Partial<Task> | null, id?: number) {
-    Object.assign(this, data ?? {});
-    if (id) {
-      this.id = id;
-      this.uid = `task_${id}`;
-    }
-  }
+export interface Task {
+  id: number;
+  uid: string;
+  done: boolean;
+  progress: number;
+  description: string;
+  tasksOrder?: Array<string>;
+  tasks?: Tasks;
 }
 
-export type Tasks = Partial<Record<string, Task | null>>;
+export type Tasks = Record<string, Task>;
+export type TaskList = Array<Task>;
+export type TaskChild = { tasks?: Tasks; tasksOrder?: Array<string> };
+
+export const getTask = (ID: number | null, overrides: Partial<Task> = {}): Task => {
+  const id = ID ?? getUniqueId();
+
+  return {
+    id,
+    uid: 'task_' + id,
+    done: false,
+    progress: 100,
+    description: '',
+    tasksOrder: [],
+    tasks: {},
+    ...overrides,
+  };
+};

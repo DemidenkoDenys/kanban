@@ -5,7 +5,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import {
   inject,
-  effect,
   signal,
   DOCUMENT,
   computed,
@@ -23,8 +22,8 @@ import { ColumnEnums } from '@kanban/models/kanban-column.model';
 import { ClickService } from '@shared/services/click.service';
 import { getKeyAction } from '@kanban/utils/kanban.utils';
 import { TranslatePipe } from '@ngx-translate/core';
+import { KanbanService } from '@kanban/services/kanban.service';
 import { KeyboardActions } from '@kanban/models/kanban-actions.enum';
-import { KanbanStoreService } from '@kanban/services/kanban.service';
 import { KanbanTaskComponent } from '../kanban-task/kanban-task.component';
 import { ContextMenuComponent } from '@shared/components/context-menu/context-menu.component';
 
@@ -43,12 +42,12 @@ import { ContextMenuComponent } from '@shared/components/context-menu/context-me
 })
 export class KanbanComponent {
   private readonly appRef = inject(ApplicationRef);
-  private readonly service = inject(KanbanStoreService);
   private readonly document = inject(DOCUMENT);
   private readonly destroyRef = inject(DestroyRef);
   private readonly clickService = inject(ClickService);
 
-  public kanban = computed(() => this.service.kanban());
+  public readonly service = inject(KanbanService);
+
   public context = signal<{ isOpen: boolean; x: number; y: number } | null>(null);
   public newTaskName: string | null = null;
   public focusTaskId = signal<string | null>(null);
@@ -56,9 +55,6 @@ export class KanbanComponent {
   public contextMenu = viewChild<ContextMenuComponent>('contextMenu');
   public contextMenuTask = signal<{ task: Task; column: ColumnEnums } | null>(null);
   public animatingTaskUid = signal<string | null>(null);
-
-  public kanbanApi = this.service.kanbanApi;
-  public columnsApi = this.service.columnsApi;
 
   public readonly isUndoPossible = computed(() => this.service.isUndoPossible());
   public readonly isRedoPossible = computed(() => this.service.isRedoPossible());
@@ -79,15 +75,10 @@ export class KanbanComponent {
   constructor() {
     afterNextRender(() => {
       this.clickService.keyEvent$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((e) => {
-        const action = getKeyAction(e);
-        if (action) {
-          this.actions[action]();
-          this.closeMenu();
-        }
+        this.actions[getKeyAction(e)]?.();
+        this.closeMenu();
       });
     });
-
-    // effect(() => console.log(this.service.kanban().toJS()));
   }
 
   public addTask(): void {
@@ -116,7 +107,7 @@ export class KanbanComponent {
 
   public drop(event: CdkDragDrop<any>): void {
     const { container: curr, previousContainer: prev, item, currentIndex: index } = event;
-    const task = prev.data.get(item.data) ?? null;
+    const task = prev.data[item.data] ?? null;
     const columnTo = curr.element.nativeElement.getAttribute('data-column') as ColumnEnums;
     const columnFrom = prev.element.nativeElement.getAttribute('data-column') as ColumnEnums;
     this.service.moveTask(task, columnFrom, columnTo, index);

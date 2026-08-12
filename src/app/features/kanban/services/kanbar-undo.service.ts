@@ -1,5 +1,5 @@
 import { computed, Injectable, signal } from '@angular/core';
-import { Kanban } from '@kanban/models/kanban.models';
+import { Columns } from '@kanban/models/kanban-column.model';
 import { cloneDeep } from 'lodash-es';
 
 @Injectable()
@@ -9,18 +9,18 @@ export class KanbanUndoService {
    * with a strict limit on the maximum number of stored actions.
    */
 
-  private readonly actions = signal<Array<Kanban>>([]);
-  private readonly undones = signal<Array<Kanban>>([]);
+  private readonly actions = signal<Array<Columns>>([]);
+  private readonly undones = signal<Array<Columns>>([]);
 
   public isUndoPossible = computed<boolean>(() => this.actions().length > 0);
   public isRedoPossible = computed<boolean>(() => this.undones().length > 0);
 
-  saveUndoState(kanban: Kanban): void {
-    this.actions.update((actions) => [...actions, kanban.asImmutable()]);
+  saveUndoState(kanbanState: Columns): void {
+    this.actions.update((actions) => [...actions, kanbanState]);
     this.undones.set([]);
   }
 
-  undoAction(kanban: Kanban): Kanban | null {
+  undoAction(kanban: Columns): Columns | null {
     if (!this.isUndoPossible()) {
       return null;
     }
@@ -36,7 +36,7 @@ export class KanbanUndoService {
     return null;
   }
 
-  redoAction(): Kanban | null {
+  redoAction(): Columns | null {
     if (!this.isRedoPossible()) {
       return null;
     }

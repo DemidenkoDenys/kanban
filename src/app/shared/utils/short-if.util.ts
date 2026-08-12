@@ -1,4 +1,4 @@
-export const shortId = (size = 21): string => {
+export const shortUid = (size = 7): string => {
   const alphabet = 'useandom-26T198340PX75pxJACKVERYMINDBUSHWOLF_QZbfghjklqvwyzrict';
   let id = '';
   const bytes = crypto.getRandomValues(new Uint8Array(size));

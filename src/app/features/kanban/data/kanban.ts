@@ -1,4 +1,4 @@
-import { Kanban } from '@kanban/models/kanban.models';
+// import { Kanban } from '@kanban/models/kanban.models';
 
 // export const kanban: Kanban = {
 //   columnsOrder: [],
@@ -61,34 +61,20 @@ import { Kanban } from '@kanban/models/kanban.models';
 //         task_5: { id: 'task_5', description: 'Push code to repository' },
 //       },
 //     },
-
-//     ongoing: {
-//       id: 'col_3',
-//       name: 'ongoing',
-//       tasksOrder: [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20].map((id) => `task_${id}`),
-//       tasks: {
-//         task_7: { id: 'task_7', description: 'Tell about myself' },
-//         task_8: { id: 'task_8', description: 'Review system architecture' },
-//         task_9: { id: 'task_9', description: 'Discuss past projects and challenges' },
-//         task_10: { id: 'task_10', description: 'Live coding session preparation' },
-//         task_11: { id: 'task_11', description: 'Implement state management logic' },
-//         task_12: { id: 'task_12', description: 'Write unit tests for components' },
-//         task_13: { id: 'task_13', description: 'Optimize bundle size and performance' },
-//         task_14: { id: 'task_14', description: 'Setup CI/CD pipeline' },
-//         task_15: { id: 'task_15', description: 'Configure Docker containers' },
-//         task_16: { id: 'task_16', description: 'Review pull requests' },
-//         task_17: { id: 'task_17', description: 'Refactor legacy codebase' },
-//         task_18: { id: 'task_18', description: 'Prepare questions for the interviewer' },
-//         task_19: { id: 'task_19', description: 'Send follow-up email' },
-//         task_20: { id: 'task_20', description: 'Celebrate job offer' },
-//       },
-//     },
-
-//     done: {
-//       id: 'col_4',
-//       name: 'done',
-//       tasks: {},
-//       tasksOrder: []
-//     },
 //   },
+
+//   neighbours: {
+//     task_1: {
+//       up: null,
+//       left: null,
+//       down: 'task_2',
+//       right: 'task_3',
+//     },
+//     task_2: {
+//       up: 'task_1',
+//       left: null,
+//       down: 'task_3',
+//       right: 'task_3',
+//     }
+//   }
 // };
